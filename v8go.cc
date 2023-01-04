@@ -26,7 +26,7 @@ const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
 
 struct m_ctx {
   Isolate* iso;
-  std::vector<m_value*> vals;
+  m_value* vals = nullptr;
   std::vector<m_unboundScript*> unboundScripts;
   Persistent<Context> ptr;
 };
@@ -35,6 +35,7 @@ struct m_value {
   Isolate* iso;
   m_ctx* ctx;
   Persistent<Value, CopyablePersistentTraits<Value>> ptr;
+  m_value* next = nullptr;
 };
 
 struct m_template {
@@ -119,7 +120,8 @@ m_value* tracked_value(m_ctx* ctx, m_value* val) {
   // Go <--> C, which would be a significant change, as there are places where
   // we get the context from the value, but if we then need the context to get
   // the value, we would be in a circular bind.
-  ctx->vals.push_back(val);
+  val->next = ctx->vals;
+  ctx->vals = val;
 
   return val;
 }
@@ -606,7 +608,9 @@ void ContextFree(ContextPtr ctx) {
   }
   ctx->ptr.Reset();
 
-  for (m_value* val : ctx->vals) {
+  m_value *next;
+  for (m_value* val = ctx->vals; val; val = next) {
+    next = val->next;
     val->ptr.Reset();
     delete val;
   }
