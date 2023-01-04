@@ -12,7 +12,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <vector>
 
 #include "_cgo_export.h"
 
@@ -28,23 +27,46 @@ const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
 struct m_ctx;
 
 struct m_value {
-  Isolate* const iso;
   m_ctx* const ctx;
-  Persistent<Value, CopyablePersistentTraits<Value>> ptr;
+  Persistent<Value, CopyablePersistentTraits<Value>> const ptr;
 
   template <class T>
   m_value(Isolate *iso_, m_ctx *ctx_, T &&val)
-  :iso(iso_)
-  ,ctx(ctx_)
-  ,ptr(iso, std::forward<T>(val))
+  :ctx(ctx_)
+  ,ptr(iso_, std::forward<T>(val))
   { }
+
+  Isolate* iso();
+
+  // Prevents `new m_value()` -- call m_ctx::newValue() instead.
+  static void* operator new(size_t) = delete;
+};
+
+struct m_unboundScript {
+  Persistent<UnboundScript, CopyablePersistentTraits<UnboundScript>> const ptr;
+
+  m_unboundScript(Isolate *iso, Local<UnboundScript> &&script)
+  :ptr(iso, std::move(script))
+  { }
+
+  // Prevents `new m_unboundScript()` -- call m_ctx::newUnboundScript() instead.
+  static void* operator new(size_t) = delete;
 };
 
 struct m_ctx {
   Isolate* iso;
-  std::deque<m_value> vals;
-  std::vector<m_unboundScript*> unboundScripts;
   Persistent<Context> ptr;
+  std::deque<m_value> vals;
+  std::deque<m_unboundScript> unboundScripts;
+
+  m_ctx(Isolate *iso_, Local<Context> const& context_)
+  :iso(iso_)
+  ,ptr(iso_, context_)
+  { }
+
+  ~m_ctx() {
+    ptr.Reset(); // (~Persistent does not do this due to NonCopyable traits)
+  }
 
   template <class T>
   m_value* newValue(T &&val) {
@@ -66,15 +88,19 @@ struct m_ctx {
     vals.emplace_back(iso, this, std::forward<T>(val));
     return &vals.back();
   }
+
+  m_unboundScript* newUnboundScript(Local<UnboundScript> &&script) {
+    unboundScripts.emplace_back(iso, std::move(script));
+    return &unboundScripts.back();
+  }
 };
+
+Isolate* m_value::iso() {return ctx->iso;}
+
 
 struct m_template {
   Isolate* iso;
   Persistent<Template> ptr;
-};
-
-struct m_unboundScript {
-  Persistent<UnboundScript> ptr;
 };
 
 const char* CopyString(std::string str) {
@@ -134,12 +160,6 @@ static RtnError ExceptionError(TryCatch& try_catch,
   return rtn;
 }
 
-m_unboundScript* tracked_unbound_script(m_ctx* ctx, m_unboundScript* us) {
-  ctx->unboundScripts.push_back(us);
-
-  return us;
-}
-
 extern "C" {
 
 /********** Isolate **********/
@@ -173,9 +193,7 @@ IsolatePtr NewIsolate() {
   iso->SetCaptureStackTraceForUncaughtExceptions(true);
 
   // Create a Context for internal use
-  m_ctx* ctx = new m_ctx;
-  ctx->ptr.Reset(iso, Context::New(iso));
-  ctx->iso = iso;
+  m_ctx* ctx = new m_ctx(iso, Context::New(iso));
   iso->SetData(0, ctx);
 
   return iso;
@@ -268,9 +286,7 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
     rtn.cachedDataRejected = cached_data->rejected;
   }
 
-  m_unboundScript* us = new m_unboundScript;
-  us->ptr.Reset(iso, unbound_script);
-  rtn.ptr = tracked_unbound_script(ctx, us);
+  rtn.ptr = ctx->newUnboundScript(std::move(unbound_script));
   return rtn;
 }
 
@@ -583,23 +599,10 @@ ContextPtr NewContext(IsolatePtr iso,
   Local<Context> local_ctx = Context::New(iso, nullptr, global_template);
   local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
 
-  m_ctx* ctx = new m_ctx;
-  ctx->ptr.Reset(iso, local_ctx);
-  ctx->iso = iso;
-  return ctx;
+  return new m_ctx(iso, std::move(local_ctx));
 }
 
 void ContextFree(ContextPtr ctx) {
-  if (ctx == nullptr) {
-    return;
-  }
-  ctx->ptr.Reset();
-
-  for (m_unboundScript* us : ctx->unboundScripts) {
-    us->ptr.Reset();
-    delete us;
-  }
-
   delete ctx;
 }
 
@@ -705,7 +708,7 @@ const char* JSONStringify(ContextPtr ctx, ValuePtr val) {
   if (ctx != nullptr) {
     iso = ctx->iso;
   } else {
-    iso = val->iso;
+    iso = val->iso();
   }
 
   Locker locker(iso);
@@ -742,7 +745,7 @@ ValuePtr ContextGlobal(ContextPtr ctx) {
 /********** Value **********/
 
 #define LOCAL_VALUE(val)                   \
-  Isolate* iso = val->iso;                 \
+  Isolate* iso = val->iso();                 \
   Locker locker(iso);                      \
   Isolate::Scope isolate_scope(iso);       \
   HandleScope handle_scope(iso);           \
@@ -936,7 +939,7 @@ RtnValue ValueToObject(ValuePtr ptr) {
 }
 
 int ValueSameValue(ValuePtr val1, ValuePtr val2) {
-  Isolate* iso = val1->iso;
+  Isolate* iso = val1->iso();
   ISOLATE_SCOPE(iso);
   Local<Value> value1 = val1->ptr.Get(iso);
   Local<Value> value2 = val2->ptr.Get(iso);
