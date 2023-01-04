@@ -32,10 +32,35 @@ struct m_ctx {
 };
 
 struct m_value {
-  Isolate* iso;
-  m_ctx* ctx;
+  template <class T>
+  m_value(Isolate *iso_, m_ctx *ctx_, T &&val)
+  :iso(iso_)
+  ,ctx(ctx_)
+  ,ptr(iso, std::forward<T>(val))
+  ,next(ctx->vals)
+  {
+    // (rogchap) we track values against a context so that when the context is
+    // closed (either manually or GC'd by Go) we can also release all the
+    // values associated with the context; previously the Go GC would not run
+    // quickly enough, as it has no understanding of the C memory allocation size.
+    // By doing so we hold pointers to all values that are created/returned to Go
+    // until the context is released; this is a compromise.
+    // Ideally we would be able to delete the value object and cancel the
+    // finalizer on the Go side, but we currently don't pass the Go ptr, but
+    // rather the C ptr. A potential future iteration would be to use an
+    // unordered_map, where we could do O(1) lookups for the value, but then know
+    // if the object has been finalized or not by being in the map or not. This
+    // would require some ref id for the value rather than passing the ptr between
+    // Go <--> C, which would be a significant change, as there are places where
+    // we get the context from the value, but if we then need the context to get
+    // the value, we would be in a circular bind.
+    ctx->vals = this;
+  }
+  
+  Isolate* const iso;
+  m_ctx* const ctx;
   Persistent<Value, CopyablePersistentTraits<Value>> ptr;
-  m_value* next = nullptr;
+  m_value* next;
 };
 
 struct m_template {
@@ -102,28 +127,6 @@ static RtnError ExceptionError(TryCatch& try_catch,
   }
 
   return rtn;
-}
-
-m_value* tracked_value(m_ctx* ctx, m_value* val) {
-  // (rogchap) we track values against a context so that when the context is
-  // closed (either manually or GC'd by Go) we can also release all the
-  // values associated with the context; previously the Go GC would not run
-  // quickly enough, as it has no understanding of the C memory allocation size.
-  // By doing so we hold pointers to all values that are created/returned to Go
-  // until the context is released; this is a compromise.
-  // Ideally we would be able to delete the value object and cancel the
-  // finalizer on the Go side, but we currently don't pass the Go ptr, but
-  // rather the C ptr. A potential future iteration would be to use an
-  // unordered_map, where we could do O(1) lookups for the value, but then know
-  // if the object has been finalized or not by being in the map or not. This
-  // would require some ref id for the value rather than passing the ptr between
-  // Go <--> C, which would be a significant change, as there are places where
-  // we get the context from the value, but if we then need the context to get
-  // the value, we would be in a circular bind.
-  val->next = ctx->vals;
-  ctx->vals = val;
-
-  return val;
 }
 
 m_unboundScript* tracked_unbound_script(m_ctx* ctx, m_unboundScript* us) {
@@ -274,13 +277,7 @@ ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value) {
 
   Local<Value> throw_ret_val = iso->ThrowException(value->ptr.Get(iso));
 
-  m_value* new_val = new m_value;
-  new_val->iso = iso;
-  new_val->ctx = ctx;
-  new_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, throw_ret_val);
-
-  return tracked_value(ctx, new_val);
+  return new m_value(iso, ctx, throw_ret_val);
 }
 
 /********** CpuProfiler **********/
@@ -458,11 +455,7 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
     return rtn;
   }
 
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
-  rtn.value = tracked_value(ctx, val);
+  rtn.value = new m_value(iso, ctx, obj);
   return rtn;
 }
 
@@ -495,23 +488,15 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
 
   int callback_ref = info.Data().As<Integer>()->Value();
 
-  m_value* _this = new m_value;
-  _this->iso = iso;
-  _this->ctx = ctx;
-  _this->ptr.Reset(iso, Persistent<Value, CopyablePersistentTraits<Value>>(
-                            iso, info.This()));
+  m_value* _this = new m_value(iso, ctx, info.This());
 
   int args_count = info.Length();
   ValuePtr thisAndArgs[args_count + 1];
-  thisAndArgs[0] = tracked_value(ctx, _this);
+  thisAndArgs[0] = _this;
   ValuePtr* args = thisAndArgs + 1;
   for (int i = 0; i < args_count; i++) {
-    m_value* val = new m_value;
-    val->iso = iso;
-    val->ctx = ctx;
-    val->ptr.Reset(
-        iso, Persistent<Value, CopyablePersistentTraits<Value>>(iso, info[i]));
-    args[i] = tracked_value(ctx, val);
+    m_value* val = new m_value(iso, ctx, info[i]);
+    args[i] = val;
   }
 
   ValuePtr val =
@@ -555,11 +540,8 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
     return rtn;
   }
 
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, fn);
-  rtn.value = tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, fn);
+  rtn.value = val;
   return rtn;
 }
 
@@ -611,7 +593,6 @@ void ContextFree(ContextPtr ctx) {
   m_value *next;
   for (m_value* val = ctx->vals; val; val = next) {
     next = val->next;
-    val->ptr.Reset();
     delete val;
   }
 
@@ -649,12 +630,8 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-
-  rtn.value = tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, result);
+  rtn.value = val;
   return rtn;
 }
 
@@ -698,12 +675,8 @@ RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-
-  rtn.value = tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, result);
+  rtn.value = val;
   return rtn;
 }
 
@@ -721,12 +694,8 @@ RtnValue JSONParse(ContextPtr ctx, const char* str) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-
-  rtn.value = tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, result);
+  rtn.value = val;
   return rtn;
 }
 
@@ -767,14 +736,8 @@ const char* JSONStringify(ContextPtr ctx, ValuePtr val) {
 
 ValuePtr ContextGlobal(ContextPtr ctx) {
   LOCAL_CONTEXT(ctx);
-  m_value* val = new m_value;
-
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, local_ctx->Global());
-
-  return tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, local_ctx->Global());
+  return val;
 }
 
 /********** Value **********/
@@ -798,22 +761,14 @@ ValuePtr ContextGlobal(ContextPtr ctx) {
 
 ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, Integer::New(iso, v));
-  return tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, Integer::New(iso, v));
+  return val;
 }
 
 ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, Integer::NewFromUnsigned(iso, v));
-  return tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, Integer::NewFromUnsigned(iso, v));
+  return val;
 }
 
 RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
@@ -826,71 +781,45 @@ RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
     rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
     return rtn;
   }
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, str);
-  rtn.value = tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, str);
+  rtn.value = val;
   return rtn;
 }
 
 ValuePtr NewValueNull(IsolatePtr iso) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Null(iso));
-  return tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, Null(iso));
+  return val;
 }
 
 ValuePtr NewValueUndefined(IsolatePtr iso) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, Undefined(iso));
-  return tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, Undefined(iso));
+  return val;
 }
 
 ValuePtr NewValueBoolean(IsolatePtr iso, int v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, Boolean::New(iso, v));
-  return tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, Boolean::New(iso, v));
+  return val;
 }
 
 ValuePtr NewValueNumber(IsolatePtr iso, double v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, Number::New(iso, v));
-  return tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, Number::New(iso, v));
+  return val;
 }
 
 ValuePtr NewValueBigInt(IsolatePtr iso, int64_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, BigInt::New(iso, v));
-  return tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, BigInt::New(iso, v));
+  return val;
 }
 
 ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso, uint64_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, BigInt::NewFromUnsigned(iso, v));
-  return tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, BigInt::NewFromUnsigned(iso, v));
+  return val;
 }
 
 RtnValue NewValueBigIntFromWords(IsolatePtr iso,
@@ -908,11 +837,8 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso,
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, bigint);
-  rtn.value = tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, bigint);
+  rtn.value = val;
   return rtn;
 }
 
@@ -1005,11 +931,8 @@ RtnValue ValueToObject(ValuePtr ptr) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* new_val = new m_value;
-  new_val->iso = iso;
-  new_val->ctx = ctx;
-  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
-  rtn.value = tracked_value(ctx, new_val);
+  m_value* new_val = new m_value(iso, ctx, obj);
+  rtn.value = new_val;
   return rtn;
 }
 
@@ -1343,13 +1266,8 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* new_val = new m_value;
-  new_val->iso = iso;
-  new_val->ctx = ctx;
-  new_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-
-  rtn.value = tracked_value(ctx, new_val);
+  m_value* new_val = new m_value(iso, ctx, result);
+  rtn.value = new_val;
   return rtn;
 }
 
@@ -1362,13 +1280,8 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
 
   Local<Value> result = obj->GetInternalField(idx);
 
-  m_value* new_val = new m_value;
-  new_val->iso = iso;
-  new_val->ctx = ctx;
-  new_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-
-  return tracked_value(ctx, new_val);
+  m_value* new_val = new m_value(iso, ctx, result);
+  return new_val;
 }
 
 RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
@@ -1380,13 +1293,8 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* new_val = new m_value;
-  new_val->iso = iso;
-  new_val->ctx = ctx;
-  new_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-
-  rtn.value = tracked_value(ctx, new_val);
+  m_value* new_val = new m_value(iso, ctx, result);
+  rtn.value = new_val;
   return rtn;
 }
 
@@ -1424,11 +1332,8 @@ RtnValue NewPromiseResolver(ContextPtr ctx) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, resolver);
-  rtn.value = tracked_value(ctx, val);
+  m_value* val = new m_value(iso, ctx, resolver);
+  rtn.value = val;
   return rtn;
 }
 
@@ -1436,12 +1341,8 @@ ValuePtr PromiseResolverGetPromise(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
   Local<Promise> promise = resolver->GetPromise();
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  return tracked_value(ctx, promise_val);
+  m_value* promise_val = new m_value(iso, ctx, promise);
+  return promise_val;
 }
 
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr resolve_val) {
@@ -1478,12 +1379,8 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* result_val = new m_value;
-  result_val->iso = iso;
-  result_val->ctx = ctx;
-  result_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-  rtn.value = tracked_value(ctx, result_val);
+  m_value* result_val = new m_value(iso, ctx, result);
+  rtn.value = result_val;
   return rtn;
 }
 
@@ -1511,12 +1408,8 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* result_val = new m_value;
-  result_val->iso = iso;
-  result_val->ctx = ctx;
-  result_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-  rtn.value = tracked_value(ctx, result_val);
+  m_value* result_val = new m_value(iso, ctx, result);
+  rtn.value = result_val;
   return rtn;
 }
 
@@ -1536,12 +1429,7 @@ RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* result_val = new m_value;
-  result_val->iso = iso;
-  result_val->ctx = ctx;
-  result_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-  rtn.value = tracked_value(ctx, result_val);
+  rtn.value = new m_value(iso, ctx, result);
   return rtn;
 }
 
@@ -1549,12 +1437,7 @@ ValuePtr PromiseResult(ValuePtr ptr) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Value> result = promise->Result();
-  m_value* result_val = new m_value;
-  result_val->iso = iso;
-  result_val->ctx = ctx;
-  result_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-  return tracked_value(ctx, result_val);
+  return new m_value(iso, ctx, result);
 }
 
 /********** Function **********/
@@ -1583,11 +1466,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* rtnval = new m_value;
-  rtnval->iso = iso;
-  rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-  rtn.value = tracked_value(ctx, rtnval);
+  rtn.value = new m_value(iso, ctx, result);
   return rtn;
 }
 
@@ -1602,11 +1481,7 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* rtnval = new m_value;
-  rtnval->iso = iso;
-  rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-  rtn.value = tracked_value(ctx, rtnval);
+  rtn.value = new m_value(iso, ctx, result);
   return rtn;
 }
 
@@ -1614,11 +1489,7 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
   LOCAL_VALUE(ptr)
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> result = fn->GetScriptOrigin().SourceMapUrl();
-  m_value* rtnval = new m_value;
-  rtnval->iso = iso;
-  rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-  return tracked_value(ctx, rtnval);
+  return new m_value(iso, ctx, result);
 }
 
 /********** v8::V8 **********/
