@@ -261,6 +261,27 @@ func (v *Value) IsUndefined() bool {
 	return C.ValueIsUndefined(v.ptr) != 0
 }
 
+// Enumerated type that indicates different types of Values.
+type ValueType int8
+const (
+  OtherType ValueType = iota
+  UndefinedType
+  NullType
+  TrueType
+  FalseType
+  NumberType
+  BigIntType
+  StringType
+  SymbolType
+  FunctionType
+  ObjectType
+)
+
+// GetType returns an enumeration of the most common value types.
+func (v *Value) GetType() ValueType {
+	return ValueType(C.ValueGetType(v.ptr))
+}
+
 // IsNull returns true if this value is the null value. See ECMA-262 4.3.11.
 func (v *Value) IsNull() bool {
 	return C.ValueIsNull(v.ptr) != 0

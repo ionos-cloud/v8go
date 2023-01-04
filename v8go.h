@@ -135,6 +135,20 @@ typedef struct {
   int sign_bit;
 } ValueBigInt;
 
+typedef enum {    // This MUST be kept in sync with `ValueType` in value.go!
+  Other_val = 0,
+  Undefined_val,
+  Null_val,
+  True_val,
+  False_val,
+  Number_val,
+  BigInt_val,
+  String_val,
+  Symbol_val,
+  Function_val,
+  Object_val,
+} ValueType;
+
 extern void Init();
 extern IsolatePtr NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
@@ -272,6 +286,7 @@ int ValueIsSharedArrayBuffer(ValuePtr ptr);
 int ValueIsProxy(ValuePtr ptr);
 int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
+int /*ValueType*/ ValueGetType(ValuePtr ptr);
 
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
