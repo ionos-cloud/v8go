@@ -8,10 +8,12 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
+	"strconv"
 	"unsafe"
 )
 
@@ -59,8 +61,13 @@ func Null(iso *Isolate) *Value {
 //   uint32 -> V8::Integer
 //   int64 -> V8::BigInt
 //   uint64 -> V8::BigInt
+//	 int -> V8::Integer or V8::BigInt
+//   uint -> V8::Integer or V8::BigInt
 //   bool -> V8::Boolean
 //   *big.Int -> V8::BigInt
+//   json.Number -> V8::Integer or V8::BigInt
+//   *v8.Value -> itself (no-op)
+//   *v8.Object -> its Value
 func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	if iso == nil {
 		return nil, errors.New("v8go: failed to create new Value: Isolate cannot be <nil>")
@@ -83,13 +90,13 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 			ptr: C.NewValueIntegerFromUnsigned(iso.ptr, C.uint(v)),
 		}
 	case int64:
-		rtnVal = &Value{
-			ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v)),
-		}
+		rtnVal = newValueFromInt64(iso, v)
 	case uint64:
-		rtnVal = &Value{
-			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v)),
-		}
+		rtnVal = newValueFromUint64(iso, v)
+	case int:
+		rtnVal = newValueFromInt64(iso, int64(v))
+	case uint:
+		rtnVal = newValueFromUint64(iso, uint64(v))
 	case bool:
 		var b int
 		if v {
@@ -103,39 +110,90 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
 		}
 	case *big.Int:
-		if v.IsInt64() {
-			rtnVal = &Value{
-				ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v.Int64())),
-			}
-			break
-		}
-
-		if v.IsUint64() {
-			rtnVal = &Value{
-				ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v.Uint64())),
-			}
-			break
-		}
-
-		var sign, count int
-		if v.Sign() == -1 {
-			sign = 1
-		}
-		bits := v.Bits()
-		count = len(bits)
-
-		words := make([]C.uint64_t, count, count)
-		for idx, word := range bits {
-			words[idx] = C.uint64_t(word)
-		}
-
-		rtn := C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0])
-		return valueResult(nil, rtn)
+		return newValueFromBigInt(iso, v)
+	case json.Number:
+		return newValueFromJSONNumber(iso, v)
+	case *Value:
+		rtnVal = v
+	case *Object:
+		rtnVal = v.Value
 	default:
 		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
 	}
 
 	return rtnVal, nil
+}
+
+const kMaxFloat64SafeInt = 1<<53 - 1
+const kMinFloat64SafeInt = -kMaxFloat64SafeInt
+
+func newValueFromInt64(iso *Isolate, v int64) *Value {
+	var ptr C.ValuePtr
+	if v >= kMinFloat64SafeInt && v <= kMaxFloat64SafeInt {
+		ptr = C.NewValueNumber(iso.ptr, C.double(v))
+	} else {
+		ptr = C.NewValueBigInt(iso.ptr, C.int64_t(v))
+	}
+	return &Value{ptr: ptr}
+}
+
+func newValueFromUint64(iso *Isolate, v uint64) *Value {
+	var ptr C.ValuePtr
+	if v <= kMaxFloat64SafeInt {
+		ptr = C.NewValueNumber(iso.ptr, C.double(v))
+	} else {
+		ptr = C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v))
+	}
+	return &Value{ptr: ptr}
+}
+
+func newValueFromBigInt(iso *Isolate, v *big.Int) (*Value, error) {
+	if v.IsInt64() {
+		return &Value{
+			ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v.Int64())),
+		}, nil
+	}
+
+	if v.IsUint64() {
+		return &Value{
+			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v.Uint64())),
+		}, nil
+	}
+
+	var sign, count int
+	if v.Sign() == -1 {
+		sign = 1
+	}
+	bits := v.Bits()
+	count = len(bits)
+
+	words := make([]C.uint64_t, count, count)
+	for idx, word := range bits {
+		words[idx] = C.uint64_t(word)
+	}
+
+	rtn := C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0])
+	return valueResult(nil, rtn)
+}
+
+func newValueFromJSONNumber(iso *Isolate, val json.Number) (*Value, error) {
+	if i, err := val.Int64(); err == nil {
+		return newValueFromInt64(iso, i), nil
+	} else if numErr, ok := err.(*strconv.NumError); ok && numErr.Err == strconv.ErrRange {
+		// if int conversion failed because it's too large, try a big.Int, which will be
+		// converted to a JS bigint:
+		ibig := new(big.Int)
+		if ibig, ok := ibig.SetString(string(val), 10); ok {
+			return newValueFromBigInt(iso, ibig)
+		}
+	}
+	if f, err := val.Float64(); err == nil {
+		return &Value{
+			ptr: C.NewValueNumber(iso.ptr, C.double(f)),
+		}, nil
+	} else {
+		return nil, err
+	}
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter
@@ -261,7 +319,7 @@ func (v *Value) IsUndefined() bool {
 	return C.ValueIsUndefined(v.ptr) != 0
 }
 
-// Enumerated type that indicates different types of Values.
+// Enumerated type that distinguishes between common types of Values.
 type ValueType int8
 const (
   OtherType ValueType = iota

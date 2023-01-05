@@ -29,7 +29,52 @@ func TestValueNewBaseCases(t *testing.T) {
 	if _, err := v8.NewValue(iso, struct{}{}); err == nil {
 		t.Error("expected error, but got <nil>")
 	}
+}
 
+func TestValueNew(t *testing.T) {
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	biggie, _ := new(big.Int).SetString("1234567890123456789012345678901234567890", 10)
+	value, _ := v8.NewValue(iso, "hi")
+
+	tests := [...]struct {
+		input interface{}
+		str string
+	}{
+		{false, "false"},
+		{true, "true"},
+		{0, "0"},
+		{1, "1"},
+		{-1, "-1"},
+		{int32(0x7FFFFFFF), "2147483647"},
+		{int32(-0x80000000), "-2147483648"},
+		{int64(0x7FFFFFFF), "2147483647"},
+		{int64(-0x80000000), "-2147483648"},
+		{1<<53 - 1, "9007199254740991"},
+		{-(1<<53 - 1), "-9007199254740991"},
+		{math.MaxInt64, "9223372036854775807"},
+		{math.MinInt64, "-9223372036854775808"},
+		{uint64(math.MaxUint64), "18446744073709551615"},
+		{4321.125, "4321.125"},
+		{6.02e23, "6.02e+23"},
+		{biggie, "1234567890123456789012345678901234567890"},
+		{"", ""},
+		{"foobar", "foobar"},
+		{value, "hi"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.str, func(t *testing.T) {
+			val, err := v8.NewValue(iso, tt.input)
+			if err != nil {
+				t.Errorf("NewValue(%v) failed, %v", val, err)
+				return
+			}
+			if str := val.DetailString(); str != tt.str {
+				t.Errorf("unexpected DetailString `%s`", str)
+			}
+		})
+	}
 }
 
 func TestValueFormatting(t *testing.T) {
