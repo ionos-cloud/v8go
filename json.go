@@ -37,6 +37,9 @@ func JSONStringify(ctx *Context, val Valuer) (string, error) {
 	}
 
 	str := C.JSONStringify(ctxPtr, val.value().ptr)
+	if str == nil {
+		return "", errors.New("v8go could not encode Value to JSON")
+	}
 	defer C.free(unsafe.Pointer(str))
 	return C.GoString(str), nil
 }
