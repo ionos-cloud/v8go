@@ -27,8 +27,8 @@ const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
 struct m_ctx;
 
 struct m_value {
-  m_ctx* const ctx;
-  Persistent<Value, CopyablePersistentTraits<Value>> const ptr;
+  m_ctx* ctx;
+  Persistent<Value, CopyablePersistentTraits<Value>> ptr;
 
   template <class T>
   m_value(Isolate *iso_, m_ctx *ctx_, T &&val)
@@ -1027,6 +1027,12 @@ int /*ValueType*/ ValueGetType(ValuePtr ptr) {
     if (value->IsBigInt())    return BigInt_val;
     return Other_val;
   }
+}
+
+void ForgetValue(ValuePtr val) {
+  Locker locker(val->iso());
+  val->ptr.Reset();
+  val->ctx = nullptr;
 }
 
 /********** Object **********/

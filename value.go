@@ -654,3 +654,15 @@ func (v *Value) MarshalJSON() ([]byte, error) {
 	}
 	return []byte(jsonStr), nil
 }
+
+// Severs the connection from a Value to the JavaScript value in the runtime, allowing
+// that value to be garbage-collected by V8.
+//
+// Any further calls to this Value (except Forget) will panic!
+func (v *Value) Forget() {
+	if ptr := v.ptr; ptr != nil {
+		C.ForgetValue(ptr)
+		v.ptr = nil
+		v.ctx = nil
+	}
+}

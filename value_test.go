@@ -73,6 +73,7 @@ func TestValueNew(t *testing.T) {
 			if str := val.DetailString(); str != tt.str {
 				t.Errorf("unexpected DetailString `%s`", str)
 			}
+			val.Forget()
 		})
 	}
 }
