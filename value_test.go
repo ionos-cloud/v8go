@@ -202,6 +202,7 @@ func TestValueDetailString(t *testing.T) {
 	}{
 		{"Number", `13 * 2`, "26"},
 		{"String", `"a string"`, "a string"},
+		{"Empty String", `""`, ""},
 		{"Object", `let obj = {}; obj`, "#<Object>"},
 		{"Function", `let fn = function(){}; fn`, "function(){}"},
 	}

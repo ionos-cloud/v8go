@@ -257,8 +257,11 @@ func (v *Value) Boolean() bool {
 func (v *Value) DetailString() string {
 	rtn := C.ValueToDetailString(v.ptr)
 	if rtn.data == nil {
-		err := newJSError(rtn.error)
-		panic(err) // TODO: Return a fallback value
+		if rtn.error.msg != nil {
+			err := newJSError(rtn.error)
+			panic(err) // TODO: Return a fallback value
+		}
+		return ""
 	}
 	defer C.free(unsafe.Pointer(rtn.data))
 	return C.GoStringN(rtn.data, rtn.length)
