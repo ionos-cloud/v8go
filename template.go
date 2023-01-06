@@ -10,7 +10,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"runtime"
 	"unsafe"
 )
@@ -34,12 +33,6 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 	}
 
 	switch v := val.(type) {
-	case string, int32, uint32, int64, uint64, float64, bool, *big.Int:
-		newVal, err := NewValue(t.iso, v)
-		if err != nil {
-			return fmt.Errorf("v8go: unable to create new value: %v", err)
-		}
-		C.TemplateSetValue(t.ptr, cname, newVal.ptr, C.int(attrs))
 	case *ObjectTemplate:
 		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
 		runtime.KeepAlive(v)
@@ -52,7 +45,11 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 		}
 		C.TemplateSetValue(t.ptr, cname, v.ptr, C.int(attrs))
 	default:
-		return fmt.Errorf("v8go: unsupported property type `%T`, must be one of string, int32, uint32, int64, uint64, float64, *big.Int, *v8go.Value, *v8go.ObjectTemplate or *v8go.FunctionTemplate", v)
+		newVal, err := NewValue(t.iso, v)
+		if err != nil {
+			return fmt.Errorf("v8go: unsupported property type `%T`, must be a type supported by NewValue(), or *v8go.ObjectTemplate or *v8go.FunctionTemplate", v)
+		}
+		C.TemplateSetValue(t.ptr, cname, newVal.ptr, C.int(attrs))
 	}
 	runtime.KeepAlive(t)
 

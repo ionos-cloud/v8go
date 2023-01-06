@@ -19,7 +19,8 @@ var v8once sync.Once
 // garbage collector. Most applications will create one isolate
 // with many V8 contexts for execution.
 type Isolate struct {
-	ptr C.IsolatePtr
+	ptr             C.IsolatePtr
+	internalContext *Context
 
 	cbMutex sync.RWMutex
 	cbSeq   int
@@ -27,6 +28,8 @@ type Isolate struct {
 
 	null      *Value
 	undefined *Value
+	falseVal  *Value
+	trueVal   *Value
 }
 
 // HeapStatistics represents V8 isolate heap statistics
@@ -55,12 +58,19 @@ func NewIsolate() *Isolate {
 	v8once.Do(func() {
 		C.Init()
 	})
+	result := C.NewIsolate()
 	iso := &Isolate{
-		ptr: C.NewIsolate(),
-		cbs: make(map[int]FunctionCallback),
+		ptr:       result.isolate,
+		cbs:       make(map[int]FunctionCallback),
+		null:      &Value{ptr: result.nullVal},
+		undefined: &Value{ptr: result.undefinedVal},
+		falseVal:  &Value{ptr: result.falseVal},
+		trueVal:   &Value{ptr: result.trueVal},
 	}
-	iso.null = newValueNull(iso)
-	iso.undefined = newValueUndefined(iso)
+	iso.internalContext = &Context{
+		ptr: result.internalContext,
+		iso: iso,
+	}
 	return iso
 }
 

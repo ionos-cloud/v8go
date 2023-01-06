@@ -38,6 +38,8 @@ typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #include <stddef.h>
 #include <stdint.h>
 
+typedef uint8_t Bool;  // cgo does not like true `bool`
+
 // ScriptCompiler::CompileOptions values
 extern const int ScriptCompilerNoCompileOptions;
 extern const int ScriptCompilerConsumeCodeCache;
@@ -45,11 +47,13 @@ extern const int ScriptCompilerEagerCompile;
 
 typedef struct m_ctx m_ctx;
 typedef struct m_value m_value;
+typedef struct m_valueScope m_valueScope;
 typedef struct m_template m_template;
 typedef struct m_unboundScript m_unboundScript;
 
 typedef m_ctx* ContextPtr;
 typedef m_value* ValuePtr;
+typedef m_valueScope* ValueScopePtr;
 typedef m_template* TemplatePtr;
 typedef m_unboundScript* UnboundScriptPtr;
 
@@ -149,8 +153,14 @@ typedef enum {    // This MUST be kept in sync with `ValueType` in value.go!
   Object_val,
 } ValueType;
 
+typedef struct {
+  IsolatePtr isolate;
+  ContextPtr internalContext;
+  ValuePtr undefinedVal, nullVal, falseVal, trueVal;
+} NewIsolateResult;
+
 extern void Init();
-extern IsolatePtr NewIsolate();
+extern NewIsolateResult NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
@@ -208,16 +218,17 @@ extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
 extern RtnValue FunctionTemplateGetFunction(TemplatePtr ptr,
                                             ContextPtr ctx_ptr);
 
-extern ValuePtr NewValueNull(IsolatePtr iso_ptr);
-extern ValuePtr NewValueUndefined(IsolatePtr iso_ptr);
-extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
-extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
-extern RtnValue NewValueString(IsolatePtr iso_ptr, const char* v, int v_length);
-extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
-extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
-extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
-extern ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v);
-extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
+extern ValueScopePtr PushValueScope(ContextPtr);
+extern Bool PopValueScope(ContextPtr, ValueScopePtr, Bool forgetValues);
+extern void FreeValueScope(ValueScopePtr);
+
+extern ValuePtr NewValueInteger(ContextPtr, int32_t v);
+extern ValuePtr NewValueIntegerFromUnsigned(ContextPtr, uint32_t v);
+extern RtnValue NewValueString(ContextPtr, const char* v, int v_length);
+extern ValuePtr NewValueNumber(ContextPtr, double v);
+extern ValuePtr NewValueBigInt(ContextPtr, int64_t v);
+extern ValuePtr NewValueBigIntFromUnsigned(ContextPtr, uint64_t v);
+extern RtnValue NewValueBigIntFromWords(ContextPtr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);

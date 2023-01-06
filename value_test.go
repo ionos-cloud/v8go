@@ -37,9 +37,12 @@ func TestValueNew(t *testing.T) {
 	biggie, _ := new(big.Int).SetString("1234567890123456789012345678901234567890", 10)
 	value, _ := v8.NewValue(iso, "hi")
 
+	context := v8.NewContext(iso)
+	defer context.Close()
+
 	tests := [...]struct {
 		input interface{}
-		str string
+		str   string
 	}{
 		{false, "false"},
 		{true, "true"},
@@ -73,7 +76,19 @@ func TestValueNew(t *testing.T) {
 			if str := val.DetailString(); str != tt.str {
 				t.Errorf("unexpected DetailString `%s`", str)
 			}
-			val.Forget()
+		})
+	}
+
+	for _, tt := range tests {
+		t.Run("Context_"+tt.str, func(t *testing.T) {
+			val, err := context.NewValue(tt.input)
+			if err != nil {
+				t.Errorf("Context.NewValue(%v) failed, %v", val, err)
+				return
+			}
+			if str := val.DetailString(); str != tt.str {
+				t.Errorf("unexpected DetailString `%s`", str)
+			}
 		})
 	}
 }
@@ -592,8 +607,8 @@ func TestValueIsXXX(t *testing.T) {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	tests := [...]struct {
-		source string
-		assert func(*v8.Value) bool
+		source       string
+		assert       func(*v8.Value) bool
 		expectedType v8.ValueType
 	}{
 		{"", (*v8.Value).IsUndefined, v8.UndefinedType},
@@ -760,5 +775,31 @@ func TestValueMarshalJSON(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestValueScopes(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	val1, _ := v8.NewValue(iso, "value 1")
+	if val1.DetailString() != "value 1" {
+		t.Error("Unexpected value 1")
+	}
+	ctx.WithValueScope(func() {
+		val2, _ := v8.NewValue(iso, "value 2")
+		if val2.DetailString() != "value 2" {
+			t.Error("Unexpected value 2")
+		}
+	})
+	val3, _ := v8.NewValue(iso, "value 3")
+	if val3.DetailString() != "value 3" {
+		t.Error("Unexpected value 3")
+	}
+	if val1.DetailString() != "value 1" {
+		t.Error("Unexpected value 1, second try")
 	}
 }

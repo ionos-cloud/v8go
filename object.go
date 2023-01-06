@@ -9,7 +9,6 @@ package v8go
 import "C"
 import (
 	"fmt"
-	"math/big"
 	"unsafe"
 )
 
@@ -34,26 +33,12 @@ func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
 	return fn.Call(o, args...)
 }
 
-func coerceValue(iso *Isolate, val interface{}) (*Value, error) {
-	switch v := val.(type) {
-	case string, int32, uint32, int64, uint64, float64, bool, *big.Int:
-		// ignoring error as code cannot reach the error state as we are already
-		// validating the new value types in this case statement
-		value, _ := NewValue(iso, v)
-		return value, nil
-	case Valuer:
-		return v.value(), nil
-	default:
-		return nil, fmt.Errorf("v8go: unsupported object property type `%T`", v)
-	}
-}
-
 // Set will set a property on the Object to a given value.
 // Supports all value types, eg: Object, Array, Date, Set, Map etc
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
 // then a *Value will be created and set as the value property.
 func (o *Object) Set(key string, val interface{}) error {
-	value, err := coerceValue(o.ctx.iso, val)
+	value, err := o.ctx.NewValue(val)
 	if err != nil {
 		return err
 	}
@@ -69,7 +54,7 @@ func (o *Object) Set(key string, val interface{}) error {
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
 // then a *Value will be created and set as the value property.
 func (o *Object) SetIdx(idx uint32, val interface{}) error {
-	value, err := coerceValue(o.ctx.iso, val)
+	value, err := o.ctx.NewValue(val)
 	if err != nil {
 		return err
 	}
@@ -82,7 +67,7 @@ func (o *Object) SetIdx(idx uint32, val interface{}) error {
 // SetInternalField sets the value of an internal field for an ObjectTemplate instance.
 // Panics if the index isn't in the range set by (*ObjectTemplate).SetInternalFieldCount.
 func (o *Object) SetInternalField(idx uint32, val interface{}) error {
-	value, err := coerceValue(o.ctx.iso, val)
+	value, err := o.ctx.NewValue(val)
 
 	if err != nil {
 		return err

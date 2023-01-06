@@ -33,18 +33,6 @@ func (v *Value) value() *Value {
 	return v
 }
 
-func newValueNull(iso *Isolate) *Value {
-	return &Value{
-		ptr: C.NewValueNull(iso.ptr),
-	}
-}
-
-func newValueUndefined(iso *Isolate) *Value {
-	return &Value{
-		ptr: C.NewValueUndefined(iso.ptr),
-	}
-}
-
 // Undefined returns the `undefined` JS value
 func Undefined(iso *Isolate) *Value {
 	return iso.undefined
@@ -55,109 +43,105 @@ func Null(iso *Isolate) *Value {
 	return iso.null
 }
 
-// NewValue will create a primitive value. Supported values types to create are:
-//   string -> V8::String
-//   int32 -> V8::Integer
-//   uint32 -> V8::Integer
-//   int64 -> V8::BigInt
-//   uint64 -> V8::BigInt
-//	 int -> V8::Integer or V8::BigInt
-//   uint -> V8::Integer or V8::BigInt
-//   bool -> V8::Boolean
-//   *big.Int -> V8::BigInt
-//   json.Number -> V8::Integer or V8::BigInt
-//   *v8.Value -> itself (no-op)
-//   *v8.Object -> its Value
+// NewValue will create a primitive value; see Context.NewValue for details.
+// The Value is not associated with any particular
+// Context and will remain in memory until the Isolate is closed.
 func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	if iso == nil {
 		return nil, errors.New("v8go: failed to create new Value: Isolate cannot be <nil>")
 	}
+	return iso.internalContext.NewValue(val)
+}
 
-	var rtnVal *Value
+// NewValue will create a primitive value. The Value is associated with this Context;
+// it becomes invalid and must not be used after this Context or its Isolate is closed.
+//
+// Go types recognized are: bool, int, uint, int32, uint32, int64, uint64, *big.Int,
+// float32, float64, json.Number, string, *v8.Value, *v8.Object.
+//
+// If given an integer outside the range ±2^53, or a big.Int, it will create a BigInt.
+//
+// As a convenience, if passed a *v8.Value it returns the same Value,
+// and if passed a *v8.Object it returns the object's Value.
+func (c *Context) NewValue(val interface{}) (*Value, error) {
+	ctxPtr := c.ptr
+	var ptr C.ValuePtr
+	var err error
 
 	switch v := val.(type) {
+	case bool:
+		if v {
+			return c.iso.trueVal, nil
+		} else {
+			return c.iso.falseVal, nil
+		}
 	case string:
 		cstr := C.CString(v)
 		defer C.free(unsafe.Pointer(cstr))
-		rtn := C.NewValueString(iso.ptr, cstr, C.int(len(v)))
-		return valueResult(nil, rtn)
+		rtn := C.NewValueString(c.ptr, cstr, C.int(len(v)))
+		return valueResult(c, rtn)
 	case int32:
-		rtnVal = &Value{
-			ptr: C.NewValueInteger(iso.ptr, C.int(v)),
-		}
+		ptr = C.NewValueInteger(ctxPtr, C.int(v))
 	case uint32:
-		rtnVal = &Value{
-			ptr: C.NewValueIntegerFromUnsigned(iso.ptr, C.uint(v)),
-		}
+		ptr = C.NewValueIntegerFromUnsigned(ctxPtr, C.uint(v))
 	case int64:
-		rtnVal = newValueFromInt64(iso, v)
+		ptr = newValueFromInt64(ctxPtr, v)
 	case uint64:
-		rtnVal = newValueFromUint64(iso, v)
+		ptr = newValueFromUint64(ctxPtr, v)
 	case int:
-		rtnVal = newValueFromInt64(iso, int64(v))
+		ptr = newValueFromInt64(ctxPtr, int64(v))
 	case uint:
-		rtnVal = newValueFromUint64(iso, uint64(v))
-	case bool:
-		var b int
-		if v {
-			b = 1
-		}
-		rtnVal = &Value{
-			ptr: C.NewValueBoolean(iso.ptr, C.int(b)),
-		}
+		ptr = newValueFromUint64(ctxPtr, uint64(v))
+	case float32:
+		ptr = C.NewValueNumber(ctxPtr, C.double(v))
 	case float64:
-		rtnVal = &Value{
-			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
-		}
+		ptr = C.NewValueNumber(ctxPtr, C.double(v))
 	case *big.Int:
-		return newValueFromBigInt(iso, v)
+		ptr, err = newValueFromBigInt(ctxPtr, v)
 	case json.Number:
-		return newValueFromJSONNumber(iso, v)
+		ptr, err = newValueFromJSONNumber(ctxPtr, v)
 	case *Value:
-		rtnVal = v
+		return v, nil
 	case *Object:
-		rtnVal = v.Value
+		return v.Value, nil
 	default:
-		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
+		err = fmt.Errorf("v8go: unsupported value type `%T`", v)
 	}
 
-	return rtnVal, nil
+	if err != nil {
+		return nil, err
+	} else if ptr == nil {
+		panic(fmt.Sprintf("NewValue got a NULL ValuePtr from C, for %T %+v", val, val))
+	}
+	return &Value{ptr: ptr, ctx: c}, nil
 }
 
 const kMaxFloat64SafeInt = 1<<53 - 1
 const kMinFloat64SafeInt = -kMaxFloat64SafeInt
 
-func newValueFromInt64(iso *Isolate, v int64) *Value {
-	var ptr C.ValuePtr
+func newValueFromInt64(ctxPtr C.ContextPtr, v int64) C.ValuePtr {
 	if v >= kMinFloat64SafeInt && v <= kMaxFloat64SafeInt {
-		ptr = C.NewValueNumber(iso.ptr, C.double(v))
+		return C.NewValueNumber(ctxPtr, C.double(v))
 	} else {
-		ptr = C.NewValueBigInt(iso.ptr, C.int64_t(v))
+		return C.NewValueBigInt(ctxPtr, C.int64_t(v))
 	}
-	return &Value{ptr: ptr}
 }
 
-func newValueFromUint64(iso *Isolate, v uint64) *Value {
-	var ptr C.ValuePtr
+func newValueFromUint64(ctxPtr C.ContextPtr, v uint64) C.ValuePtr {
 	if v <= kMaxFloat64SafeInt {
-		ptr = C.NewValueNumber(iso.ptr, C.double(v))
+		return C.NewValueNumber(ctxPtr, C.double(v))
 	} else {
-		ptr = C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v))
+		return C.NewValueBigIntFromUnsigned(ctxPtr, C.uint64_t(v))
 	}
-	return &Value{ptr: ptr}
 }
 
-func newValueFromBigInt(iso *Isolate, v *big.Int) (*Value, error) {
+func newValueFromBigInt(ctxPtr C.ContextPtr, v *big.Int) (C.ValuePtr, error) {
 	if v.IsInt64() {
-		return &Value{
-			ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v.Int64())),
-		}, nil
+		return C.NewValueBigInt(ctxPtr, C.int64_t(v.Int64())), nil
 	}
 
 	if v.IsUint64() {
-		return &Value{
-			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v.Uint64())),
-		}, nil
+		return C.NewValueBigIntFromUnsigned(ctxPtr, C.uint64_t(v.Uint64())), nil
 	}
 
 	var sign, count int
@@ -172,25 +156,26 @@ func newValueFromBigInt(iso *Isolate, v *big.Int) (*Value, error) {
 		words[idx] = C.uint64_t(word)
 	}
 
-	rtn := C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0])
-	return valueResult(nil, rtn)
+	rtn := C.NewValueBigIntFromWords(ctxPtr, C.int(sign), C.int(count), &words[0])
+	if rtn.value == nil {
+		return nil, newJSError(rtn.error)
+	}
+	return rtn.value, nil
 }
 
-func newValueFromJSONNumber(iso *Isolate, val json.Number) (*Value, error) {
+func newValueFromJSONNumber(ctxPtr C.ContextPtr, val json.Number) (C.ValuePtr, error) {
 	if i, err := val.Int64(); err == nil {
-		return newValueFromInt64(iso, i), nil
+		return newValueFromInt64(ctxPtr, i), nil
 	} else if numErr, ok := err.(*strconv.NumError); ok && numErr.Err == strconv.ErrRange {
 		// if int conversion failed because it's too large, try a big.Int, which will be
 		// converted to a JS bigint:
 		ibig := new(big.Int)
 		if ibig, ok := ibig.SetString(string(val), 10); ok {
-			return newValueFromBigInt(iso, ibig)
+			return newValueFromBigInt(ctxPtr, ibig)
 		}
 	}
 	if f, err := val.Float64(); err == nil {
-		return &Value{
-			ptr: C.NewValueNumber(iso.ptr, C.double(f)),
-		}, nil
+		return C.NewValueNumber(ctxPtr, C.double(f)), nil
 	} else {
 		return nil, err
 	}
@@ -324,18 +309,19 @@ func (v *Value) IsUndefined() bool {
 
 // Enumerated type that distinguishes between common types of Values.
 type ValueType int8
+
 const (
-  OtherType ValueType = iota
-  UndefinedType
-  NullType
-  TrueType
-  FalseType
-  NumberType
-  BigIntType
-  StringType
-  SymbolType
-  FunctionType
-  ObjectType
+	OtherType ValueType = iota
+	UndefinedType
+	NullType
+	TrueType
+	FalseType
+	NumberType
+	BigIntType
+	StringType
+	SymbolType
+	FunctionType
+	ObjectType
 )
 
 // GetType returns an enumeration of the most common value types.
@@ -663,7 +649,7 @@ func (v *Value) MarshalJSON() ([]byte, error) {
 //
 // Any further calls to this Value (except Forget) will panic!
 func (v *Value) Forget() {
-	if ptr := v.ptr; ptr != nil {
+	if ptr := v.ptr; ptr != nil && v.ctx != nil {
 		C.ForgetValue(ptr)
 		v.ptr = nil
 		v.ctx = nil

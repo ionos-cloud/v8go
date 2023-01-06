@@ -174,3 +174,41 @@ func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {
 	}
 	return &Object{&Value{rtn.value, ctx}}, nil
 }
+
+type valueScope struct {
+	context *Context
+	ptr     C.ValueScopePtr
+}
+
+func (c *Context) pushValueScope() *valueScope {
+	scope := &valueScope{
+		context: c,
+		ptr:     C.PushValueScope(c.ptr),
+	}
+	runtime.SetFinalizer(scope, func(scope *valueScope) {
+		if scope.context.iso.ptr != nil {
+			C.FreeValueScope(scope.ptr)
+		}
+	})
+	return scope
+}
+
+func (c *Context) popValueScope(scope *valueScope, forgetValues bool) {
+	var f C.uchar = 0
+	if forgetValues {
+		f = 1
+	}
+	if C.PopValueScope(c.ptr, scope.ptr, f) == 0 {
+		panic("Improper call to Context.PopValueScope: Scope is not current")
+	}
+}
+
+// Calls the callback; any Values created in this Context during the callback will be
+// invalidated when the callback returns and must not be referenced.
+// This helps to reduce memory growth in a long-lived Context, since otherwise the Values
+// would hold onto their JavaScript counterparts until the Context is closed.
+func (c *Context) WithValueScope(callback func()) {
+	scope := c.pushValueScope()
+	defer c.popValueScope(scope, true)
+	callback()
+}

@@ -31,16 +31,23 @@ struct m_value {
   Persistent<Value, CopyablePersistentTraits<Value>> ptr;
 
   template <class T>
-  m_value(Isolate *iso_, m_ctx *ctx_, T &&val)
+  m_value(Isolate *iso_, m_ctx *ctx_, T &&val) noexcept
   :ctx(ctx_)
   ,ptr(iso_, std::forward<T>(val))
   { }
 
   Isolate* iso();
 
+  void forget() {
+    ptr.Reset();
+    ctx = nullptr;
+}
+
+
   // Prevents `new m_value()` -- call m_ctx::newValue() instead.
   static void* operator new(size_t) = delete;
 };
+
 
 struct m_unboundScript {
   Persistent<UnboundScript, CopyablePersistentTraits<UnboundScript>> const ptr;
@@ -53,49 +60,92 @@ struct m_unboundScript {
   static void* operator new(size_t) = delete;
 };
 
+
+struct m_valueScope {
+  m_valueScope(m_ctx *ctx);
+  template <class T> m_value* add(T &&val);
+
+  Isolate* iso() {return _iso;}
+
+  void forget() noexcept {
+    for (auto &val : _vals)
+      val.forget();
+  }
+
+private:
+  Isolate* _iso;
+  m_ctx* _ctx;
+  std::deque<m_value> _vals;
+};
+
+
 struct m_ctx {
   Isolate* iso;
   Persistent<Context> ptr;
-  std::deque<m_value> vals;
-  std::deque<m_unboundScript> unboundScripts;
+
+  static m_ctx* forV8Context(Local<Context> const& ctx) {
+    return (m_ctx*) ctx->GetAlignedPointerFromEmbedderData(2);
+  }
+
+  static m_ctx* currentForIsolate(Isolate *iso) {
+    if (iso->InContext())
+      return forV8Context(iso->GetCurrentContext());
+    else
+      return nullptr;
+  }
 
   m_ctx(Isolate *iso_, Local<Context> const& context_)
   :iso(iso_)
   ,ptr(iso_, context_)
-  { }
+  ,vals(this)
+  ,scopes{&vals}
+  {
+    context()->SetAlignedPointerInEmbedderData(2, this);
+  }
 
   ~m_ctx() {
     ptr.Reset(); // (~Persistent does not do this due to NonCopyable traits)
   }
 
-  template <class T>
-  m_value* newValue(T &&val) {
-    // (rogchap) we track values against a context so that when the context is
-    // closed (either manually or GC'd by Go) we can also release all the
-    // values associated with the context; previously the Go GC would not run
-    // quickly enough, as it has no understanding of the C memory allocation size.
-    // By doing so we hold pointers to all values that are created/returned to Go
-    // until the context is released; this is a compromise.
-    // Ideally we would be able to delete the value object and cancel the
-    // finalizer on the Go side, but we currently don't pass the Go ptr, but
-    // rather the C ptr. A potential future iteration would be to use an
-    // unordered_map, where we could do O(1) lookups for the value, but then know
-    // if the object has been finalized or not by being in the map or not. This
-    // would require some ref id for the value rather than passing the ptr between
-    // Go <--> C, which would be a significant change, as there are places where
-    // we get the context from the value, but if we then need the context to get
-    // the value, we would be in a circular bind.
-    vals.emplace_back(iso, this, std::forward<T>(val));
-    return &vals.back();
+  Local<Context> context() {return ptr.Get(iso);}
+
+  m_value* newValue(Local<Value> &&val) {return valueScope().add(std::move(val));}
+  m_value* newValue(Local<Value> const& val) {return valueScope().add(val);}
+
+  m_valueScope* pushValueScope() {
+    auto scope = new m_valueScope(this);
+    scopes.push_back(scope);
+    return scope;
+  }
+
+  bool popValueScope(m_valueScope *scope) {
+    if (scopes.size() <= 1 || scopes.back() != scope)
+      return false;
+    scopes.pop_back();
+    delete scope;
+    return true;
   }
 
   m_unboundScript* newUnboundScript(Local<UnboundScript> &&script) {
     unboundScripts.emplace_back(iso, std::move(script));
     return &unboundScripts.back();
   }
+
+private:
+  m_valueScope& valueScope() {return *scopes.back();}
+  m_valueScope vals;
+  std::vector<m_valueScope*> scopes;
+  std::deque<m_unboundScript> unboundScripts;
 };
 
 Isolate* m_value::iso() {return ctx->iso;}
+
+m_valueScope::m_valueScope(m_ctx *ctx) :_iso(ctx->iso),_ctx(ctx) { }
+
+template <class T> m_value* m_valueScope::add(T &&val) {
+  _vals.emplace_back(_iso, _ctx, std::forward<T>(val));
+  return &_vals.back();
+}
 
 
 struct m_template {
@@ -182,7 +232,7 @@ void Init() {
   return;
 }
 
-IsolatePtr NewIsolate() {
+NewIsolateResult NewIsolate() {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
   Isolate* iso = Isolate::New(params);
@@ -196,7 +246,14 @@ IsolatePtr NewIsolate() {
   m_ctx* ctx = new m_ctx(iso, Context::New(iso));
   iso->SetData(0, ctx);
 
-  return iso;
+  NewIsolateResult result;
+  result.isolate = iso;
+  result.internalContext = ctx;
+  result.undefinedVal = ctx->newValue(Undefined(iso));
+  result.nullVal = ctx->newValue(Null(iso));
+  result.falseVal = ctx->newValue(Boolean::New(iso, false));
+  result.trueVal = ctx->newValue(Boolean::New(iso, true));
+  return result;
 }
 
 static inline m_ctx* isolateInternalContext(Isolate* iso) {
@@ -742,6 +799,34 @@ ValuePtr ContextGlobal(ContextPtr ctx) {
   return val;
 }
 
+/********** ValueScope **********/
+
+ValueScopePtr PushValueScope(ContextPtr ctx) {
+  Locker locker(ctx->iso);
+  return ctx->pushValueScope();
+}
+
+Bool PopValueScope(ContextPtr ctx, ValueScopePtr scope, Bool forgetValues) {
+  Locker locker(ctx->iso);
+
+  bool ok = ctx->popValueScope(scope);
+  if (ok && forgetValues) {
+    Isolate::Scope isolate_scope(ctx->iso);
+    HandleScope handle_scope(ctx->iso);
+    scope->forget();
+  }
+  return ok;
+}
+
+void FreeValueScope(ValueScopePtr scope) {
+  Locker locker(scope->iso());
+  Isolate::Scope isolate_scope(scope->iso());
+  HandleScope handle_scope(scope->iso());
+
+  delete scope;
+}
+
+
 /********** Value **********/
 
 #define LOCAL_VALUE(val)                   \
@@ -761,20 +846,21 @@ ValuePtr ContextGlobal(ContextPtr ctx) {
   Context::Scope context_scope(local_ctx); \
   Local<Value> value = val->ptr.Get(iso);
 
-ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = ctx->newValue(Integer::New(iso, v));
+ValuePtr NewValueInteger(ContextPtr ctx, int32_t v) {
+  ISOLATE_SCOPE(ctx->iso);
+  m_value* val = ctx->newValue(Integer::New(ctx->iso, v));
   return val;
 }
 
-ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = ctx->newValue(Integer::NewFromUnsigned(iso, v));
+ValuePtr NewValueIntegerFromUnsigned(ContextPtr ctx, uint32_t v) {
+  ISOLATE_SCOPE(ctx->iso);
+  m_value* val = ctx->newValue(Integer::NewFromUnsigned(ctx->iso, v));
   return val;
 }
 
-RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+RtnValue NewValueString(ContextPtr ctx, const char* v, int v_length) {
+  auto iso = ctx->iso;
+  ISOLATE_SCOPE(iso);
   TryCatch try_catch(iso);
   RtnValue rtn = {};
   Local<String> str;
@@ -788,47 +874,30 @@ RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
   return rtn;
 }
 
-ValuePtr NewValueNull(IsolatePtr iso) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = ctx->newValue(Null(iso));
+ValuePtr NewValueNumber(ContextPtr ctx, double v) {
+  ISOLATE_SCOPE(ctx->iso);
+  m_value* val = ctx->newValue(Number::New(ctx->iso, v));
   return val;
 }
 
-ValuePtr NewValueUndefined(IsolatePtr iso) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = ctx->newValue(Undefined(iso));
+ValuePtr NewValueBigInt(ContextPtr ctx, int64_t v) {
+  ISOLATE_SCOPE(ctx->iso);
+  m_value* val = ctx->newValue(BigInt::New(ctx->iso, v));
   return val;
 }
 
-ValuePtr NewValueBoolean(IsolatePtr iso, int v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = ctx->newValue(Boolean::New(iso, v));
+ValuePtr NewValueBigIntFromUnsigned(ContextPtr ctx, uint64_t v) {
+  ISOLATE_SCOPE(ctx->iso);
+  m_value* val = ctx->newValue(BigInt::NewFromUnsigned(ctx->iso, v));
   return val;
 }
 
-ValuePtr NewValueNumber(IsolatePtr iso, double v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = ctx->newValue(Number::New(iso, v));
-  return val;
-}
-
-ValuePtr NewValueBigInt(IsolatePtr iso, int64_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = ctx->newValue(BigInt::New(iso, v));
-  return val;
-}
-
-ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso, uint64_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  m_value* val = ctx->newValue(BigInt::NewFromUnsigned(iso, v));
-  return val;
-}
-
-RtnValue NewValueBigIntFromWords(IsolatePtr iso,
+RtnValue NewValueBigIntFromWords(ContextPtr ctx,
                                  int sign_bit,
                                  int word_count,
                                  const uint64_t* words) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+  Isolate *iso = ctx->iso;
+  ISOLATE_SCOPE(iso);
   TryCatch try_catch(iso);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
 
@@ -1031,8 +1100,7 @@ int /*ValueType*/ ValueGetType(ValuePtr ptr) {
 
 void ForgetValue(ValuePtr val) {
   Locker locker(val->iso());
-  val->ptr.Reset();
-  val->ctx = nullptr;
+  val->forget();
 }
 
 /********** Object **********/
