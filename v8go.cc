@@ -1098,10 +1098,6 @@ int /*ValueType*/ ValueGetType(ValuePtr ptr) {
   }
 }
 
-void ForgetValue(ValuePtr val) {
-  Locker locker(val->iso());
-  val->forget();
-}
 
 /********** Object **********/
 

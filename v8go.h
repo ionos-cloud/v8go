@@ -232,7 +232,6 @@ extern RtnValue NewValueBigIntFromWords(ContextPtr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);
-void ForgetValue(ValuePtr ptr);
 extern RtnString ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
