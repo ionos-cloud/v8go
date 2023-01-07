@@ -30,13 +30,7 @@ func JSONStringify(ctx *Context, val Valuer) (string, error) {
 	if val == nil || val.value() == nil {
 		return "", errors.New("v8go: Value is required")
 	}
-	// If a nil context is passed we'll use the context/isolate that created the value.
-	var ctxPtr C.ContextPtr
-	if ctx != nil {
-		ctxPtr = ctx.ptr
-	}
-
-	str := C.JSONStringify(ctxPtr, val.value().ptr)
+	str := C.JSONStringify(val.value().valuePtr())
 	if str == nil {
 		return "", errors.New("v8go could not encode Value to JSON")
 	}

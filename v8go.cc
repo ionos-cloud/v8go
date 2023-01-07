@@ -24,29 +24,16 @@ const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
 const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;
 const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
 
-struct m_ctx;
 
-struct m_value {
-  m_ctx* ctx;
-  Persistent<Value, CopyablePersistentTraits<Value>> ptr;
-
-  template <class T>
-  m_value(Isolate *iso_, m_ctx *ctx_, T &&val) noexcept
-  :ctx(ctx_)
-  ,ptr(iso_, std::forward<T>(val))
-  { }
-
-  Isolate* iso();
-
-  void forget() {
-    ptr.Reset();
-    ctx = nullptr;
+static void Panic(const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  fputs("*** v8go PANIC: ", stderr);
+  vfprintf(stderr, fmt, args);
+  fputs("\n", stderr);
+  va_end(args);
+  abort();  //TODO: Is there a friendlier way to trigger a Go panic?
 }
-
-
-  // Prevents `new m_value()` -- call m_ctx::newValue() instead.
-  static void* operator new(size_t) = delete;
-};
 
 
 struct m_unboundScript {
@@ -61,21 +48,22 @@ struct m_unboundScript {
 };
 
 
-struct m_valueScope {
-  m_valueScope(m_ctx *ctx);
-  template <class T> m_value* add(T &&val);
+struct m_value {
+  ValueRef ref;
+  Persistent<Value, CopyablePersistentTraits<Value>> ptr;
 
-  Isolate* iso() {return _iso;}
+  m_value()
+  :ref{}
+  { }
 
-  void forget() noexcept {
-    for (auto &val : _vals)
-      val.forget();
-  }
+  template <class T>
+  explicit m_value(Isolate *iso, ValueRef ref_, T &&val) noexcept
+  :ref(ref_)
+  ,ptr(iso, std::forward<T>(val))
+  { }
 
-private:
-  Isolate* _iso;
-  m_ctx* _ctx;
-  std::deque<m_value> _vals;
+  // Prevents `new m_value()` -- call m_ctx::newValue() instead.
+  static void* operator new(size_t) = delete;
 };
 
 
@@ -97,61 +85,84 @@ struct m_ctx {
   m_ctx(Isolate *iso_, Local<Context> const& context_)
   :iso(iso_)
   ,ptr(iso_, context_)
-  ,vals(this)
-  ,scopes{&vals}
   {
     context()->SetAlignedPointerInEmbedderData(2, this);
   }
 
   ~m_ctx() {
     ptr.Reset(); // (~Persistent does not do this due to NonCopyable traits)
+  #ifdef CTX_LOG_VALUES
+    fprintf(stderr, "*** m_ctx created %zu values, max table size %zu\n", _nValues, _maxValues);
+  #endif
   }
 
   Local<Context> context() {return ptr.Get(iso);}
 
-  m_value* newValue(Local<Value> &&val) {return valueScope().add(std::move(val));}
-  m_value* newValue(Local<Value> const& val) {return valueScope().add(val);}
-
-  m_valueScope* pushValueScope() {
-    auto scope = new m_valueScope(this);
-    scopes.push_back(scope);
-    return scope;
+  ValueRef newValue(Local<Value> const& val) {
+    ValueRef ref {_curScope, uint32_t(_values.size())};
+    _values.emplace_back(iso, ref, val);
+  #ifdef CTX_LOG_VALUES
+    ++_nValues;
+    if (ref.index >= _maxValues)
+      _maxValues = ref.index + 1;
+  #endif
+    return ref;
   }
 
-  bool popValueScope(m_valueScope *scope) {
-    if (scopes.size() <= 1 || scopes.back() != scope)
+  Local<Value> getValue(ValueRef ref) {
+    if (ref.index >= _values.size()) {
+      Panic("Attempt to use obsolete v8go Value");
+    }
+    m_value &value = _values[ref.index];
+    if (value.ref.scope != ref.scope) {
+      Panic("Attempt to use obsolete v8go Value");
+    }
+    return value.ptr.Get(iso);
+  }
+
+  uint32_t pushValueScope() {
+    _savedscopes.emplace_back(_curScope, _values.size());
+    _curScope = ++_latestScope;
+    return _curScope;
+  }
+
+  bool popValueScope(uint32_t scopeID) {
+    if (scopeID != _curScope || _savedscopes.empty()) {
       return false;
-    scopes.pop_back();
-    delete scope;
+    }
+    size_t size;
+    std::tie(_curScope, size) = _savedscopes.back();
+    _savedscopes.pop_back();
+    _values.resize(size);
     return true;
   }
 
   m_unboundScript* newUnboundScript(Local<UnboundScript> &&script) {
-    unboundScripts.emplace_back(iso, std::move(script));
-    return &unboundScripts.back();
+    _unboundScripts.emplace_back(iso, std::move(script));
+    return &_unboundScripts.back();
   }
 
 private:
-  m_valueScope& valueScope() {return *scopes.back();}
-  m_valueScope vals;
-  std::vector<m_valueScope*> scopes;
-  std::deque<m_unboundScript> unboundScripts;
+  std::vector<m_value> _values;
+  std::vector<std::pair<ValueScope, size_t>> _savedscopes;
+  ValueScope _latestScope = 1, _curScope = 1;
+  std::deque<m_unboundScript> _unboundScripts;
+#ifdef CTX_LOG_VALUES
+  size_t _nValues = 0, _maxValues = 0;
+#endif
 };
-
-Isolate* m_value::iso() {return ctx->iso;}
-
-m_valueScope::m_valueScope(m_ctx *ctx) :_iso(ctx->iso),_ctx(ctx) { }
-
-template <class T> m_value* m_valueScope::add(T &&val) {
-  _vals.emplace_back(_iso, _ctx, std::forward<T>(val));
-  return &_vals.back();
-}
 
 
 struct m_template {
   Isolate* iso;
   Persistent<Template> ptr;
 };
+
+
+static Local<Value> Deref(ValuePtr ptr) {
+  return ptr.ctx->getValue(ptr.ref);
+}
+
 
 const char* CopyString(std::string str) {
   int len = str.length();
@@ -210,7 +221,6 @@ static RtnError ExceptionError(TryCatch& try_catch,
   return rtn;
 }
 
-extern "C" {
 
 /********** Isolate **********/
 
@@ -308,7 +318,7 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
                                              CompileOptions opts) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
-  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Local<Context> local_ctx = ctx->context();
   Context::Scope context_scope(local_ctx);
 
   RtnUnboundScript rtn = {};
@@ -349,13 +359,10 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
 
 /********** Exceptions & Errors **********/
 
-ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value) {
+ValueRef IsolateThrowException(IsolatePtr iso, ValuePtr value) {
   ISOLATE_SCOPE(iso);
-  m_ctx* ctx = value->ctx;
-
-  Local<Value> throw_ret_val = iso->ThrowException(value->ptr.Get(iso));
-
-  return ctx->newValue(throw_ret_val);
+  Local<Value> throw_ret_val = iso->ThrowException(Deref(value));
+  return value.ctx->newValue(throw_ret_val);
 }
 
 /********** CpuProfiler **********/
@@ -491,7 +498,7 @@ void TemplateSetValue(TemplatePtr ptr,
 
   Local<String> prop_name =
       String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  tmpl->Set(prop_name, val->ptr.Get(iso), (PropertyAttribute)attributes);
+  tmpl->Set(prop_name, Deref(val), (PropertyAttribute)attributes);
 }
 
 void TemplateSetTemplate(TemplatePtr ptr,
@@ -521,7 +528,7 @@ TemplatePtr NewObjectTemplate(IsolatePtr iso) {
 RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   LOCAL_TEMPLATE(ptr);
   TryCatch try_catch(iso);
-  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Local<Context> local_ctx = ctx->context();
   Context::Scope context_scope(local_ctx);
 
   RtnValue rtn = {};
@@ -566,21 +573,18 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
 
   int callback_ref = info.Data().As<Integer>()->Value();
 
-  m_value* _this = ctx->newValue(info.This());
+  ValueRef _this = ctx->newValue(info.This());
 
   int args_count = info.Length();
-  ValuePtr thisAndArgs[args_count + 1];
+  ValueRef thisAndArgs[args_count + 1];
   thisAndArgs[0] = _this;
-  ValuePtr* args = thisAndArgs + 1;
   for (int i = 0; i < args_count; i++) {
-    m_value* val = ctx->newValue(info[i]);
-    args[i] = val;
+    thisAndArgs[1+i] = ctx->newValue(info[i]);
   }
 
-  ValuePtr val =
-      goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
-  if (val != nullptr) {
-    info.GetReturnValue().Set(val->ptr.Get(iso));
+  ValuePtr val = goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
+  if (val.ctx != nullptr) {
+    info.GetReturnValue().Set(Deref(val));
   } else {
     info.GetReturnValue().SetUndefined();
   }
@@ -607,7 +611,7 @@ TemplatePtr NewFunctionTemplate(IsolatePtr iso, int callback_ref) {
 RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   LOCAL_TEMPLATE(ptr);
   TryCatch try_catch(iso);
-  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Local<Context> local_ctx = ctx->context();
   Context::Scope context_scope(local_ctx);
 
   Local<FunctionTemplate> fn_tmpl = tmpl.As<FunctionTemplate>();
@@ -618,8 +622,7 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
     return rtn;
   }
 
-  m_value* val = ctx->newValue(fn);
-  rtn.value = val;
+  rtn.value = ctx->newValue(fn);;
   return rtn;
 }
 
@@ -631,7 +634,7 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   Isolate::Scope isolate_scope(iso);            \
   HandleScope handle_scope(iso);                \
   TryCatch try_catch(iso);                      \
-  Local<Context> local_ctx = ctx->ptr.Get(iso); \
+  Local<Context> local_ctx = ctx->context(); \
   Context::Scope context_scope(local_ctx);
 
 ContextPtr NewContext(IsolatePtr iso,
@@ -689,8 +692,7 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = ctx->newValue(result);
-  rtn.value = val;
+  rtn.value = ctx->newValue(result);
   return rtn;
 }
 
@@ -734,8 +736,7 @@ RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = ctx->newValue(result);
-  rtn.value = val;
+  rtn.value = ctx->newValue(result);
   return rtn;
 }
 
@@ -753,109 +754,69 @@ RtnValue JSONParse(ContextPtr ctx, const char* str) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = ctx->newValue(result);
-  rtn.value = val;
+  rtn.value = ctx->newValue(result);
   return rtn;
 }
 
-const char* JSONStringify(ContextPtr ctx, ValuePtr val) {
-  Isolate* iso;
-  Local<Context> local_ctx;
-
-  if (ctx != nullptr) {
-    iso = ctx->iso;
-  } else {
-    iso = val->iso();
-  }
-
+const char* JSONStringify(ValuePtr val) {
+  Isolate* iso = val.ctx->iso;
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
-  if (ctx != nullptr) {
-    local_ctx = ctx->ptr.Get(iso);
-  } else {
-    if (val->ctx != nullptr) {
-      local_ctx = val->ctx->ptr.Get(iso);
-    } else {
-      m_ctx* ctx = isolateInternalContext(iso);
-      local_ctx = ctx->ptr.Get(iso);
-    }
-  }
-
+  Local<Context> local_ctx = val.ctx->context();
   Context::Scope context_scope(local_ctx);
 
   Local<String> str;
-  if (!JSON::Stringify(local_ctx, val->ptr.Get(iso)).ToLocal(&str)) {
+  if (!JSON::Stringify(local_ctx, Deref(val)).ToLocal(&str)) {
     return nullptr;
   }
   String::Utf8Value json(iso, str);
   return CopyString(json);
 }
 
-ValuePtr ContextGlobal(ContextPtr ctx) {
+ValueRef ContextGlobal(ContextPtr ctx) {
   LOCAL_CONTEXT(ctx);
-  m_value* val = ctx->newValue(local_ctx->Global());
-  return val;
+  return ctx->newValue(local_ctx->Global());
 }
 
 /********** ValueScope **********/
 
-ValueScopePtr PushValueScope(ContextPtr ctx) {
+ValueScope PushValueScope(ContextPtr ctx) {
   Locker locker(ctx->iso);
   return ctx->pushValueScope();
 }
 
-Bool PopValueScope(ContextPtr ctx, ValueScopePtr scope, Bool forgetValues) {
+Bool PopValueScope(ContextPtr ctx, ValueScope scope) {
   Locker locker(ctx->iso);
+  Isolate::Scope isolate_scope(ctx->iso);
+  HandleScope handle_scope(ctx->iso);
 
-  bool ok = ctx->popValueScope(scope);
-  if (ok && forgetValues) {
-    Isolate::Scope isolate_scope(ctx->iso);
-    HandleScope handle_scope(ctx->iso);
-    scope->forget();
-  }
-  return ok;
-}
-
-void FreeValueScope(ValueScopePtr scope) {
-  Locker locker(scope->iso());
-  Isolate::Scope isolate_scope(scope->iso());
-  HandleScope handle_scope(scope->iso());
-
-  delete scope;
+  return ctx->popValueScope(scope);
 }
 
 
 /********** Value **********/
 
 #define LOCAL_VALUE(val)                   \
-  Isolate* iso = val->iso();                 \
+  m_ctx* ctx = val.ctx;                   \
+  Isolate* iso = ctx->iso;                 \
   Locker locker(iso);                      \
   Isolate::Scope isolate_scope(iso);       \
   HandleScope handle_scope(iso);           \
   TryCatch try_catch(iso);                 \
-  m_ctx* ctx = val->ctx;                   \
-  Local<Context> local_ctx;                \
-  if (ctx != nullptr) {                    \
-    local_ctx = ctx->ptr.Get(iso);         \
-  } else {                                 \
-    ctx = isolateInternalContext(iso);     \
-    local_ctx = ctx->ptr.Get(iso);         \
-  }                                        \
+  Local<Context> local_ctx = ctx->context(); \
   Context::Scope context_scope(local_ctx); \
-  Local<Value> value = val->ptr.Get(iso);
+  Local<Value> value = Deref(val);
 
-ValuePtr NewValueInteger(ContextPtr ctx, int32_t v) {
+ValueRef NewValueInteger(ContextPtr ctx, int32_t v) {
   ISOLATE_SCOPE(ctx->iso);
-  m_value* val = ctx->newValue(Integer::New(ctx->iso, v));
-  return val;
+  return ctx->newValue(Integer::New(ctx->iso, v));
 }
 
-ValuePtr NewValueIntegerFromUnsigned(ContextPtr ctx, uint32_t v) {
+ValueRef NewValueIntegerFromUnsigned(ContextPtr ctx, uint32_t v) {
   ISOLATE_SCOPE(ctx->iso);
-  m_value* val = ctx->newValue(Integer::NewFromUnsigned(ctx->iso, v));
-  return val;
+  return ctx->newValue(Integer::NewFromUnsigned(ctx->iso, v));
 }
 
 RtnValue NewValueString(ContextPtr ctx, const char* v, int v_length) {
@@ -866,30 +827,26 @@ RtnValue NewValueString(ContextPtr ctx, const char* v, int v_length) {
   Local<String> str;
   if (!String::NewFromUtf8(iso, v, NewStringType::kNormal, v_length)
            .ToLocal(&str)) {
-    rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
+    rtn.error = ExceptionError(try_catch, iso, ctx->context());
     return rtn;
   }
-  m_value* val = ctx->newValue(str);
-  rtn.value = val;
+  rtn.value = ctx->newValue(str);
   return rtn;
 }
 
-ValuePtr NewValueNumber(ContextPtr ctx, double v) {
+ValueRef NewValueNumber(ContextPtr ctx, double v) {
   ISOLATE_SCOPE(ctx->iso);
-  m_value* val = ctx->newValue(Number::New(ctx->iso, v));
-  return val;
+  return ctx->newValue(Number::New(ctx->iso, v));
 }
 
-ValuePtr NewValueBigInt(ContextPtr ctx, int64_t v) {
+ValueRef NewValueBigInt(ContextPtr ctx, int64_t v) {
   ISOLATE_SCOPE(ctx->iso);
-  m_value* val = ctx->newValue(BigInt::New(ctx->iso, v));
-  return val;
+  return ctx->newValue(BigInt::New(ctx->iso, v));
 }
 
-ValuePtr NewValueBigIntFromUnsigned(ContextPtr ctx, uint64_t v) {
+ValueRef NewValueBigIntFromUnsigned(ContextPtr ctx, uint64_t v) {
   ISOLATE_SCOPE(ctx->iso);
-  m_value* val = ctx->newValue(BigInt::NewFromUnsigned(ctx->iso, v));
-  return val;
+  return ctx->newValue(BigInt::NewFromUnsigned(ctx->iso, v));
 }
 
 RtnValue NewValueBigIntFromWords(ContextPtr ctx,
@@ -899,7 +856,7 @@ RtnValue NewValueBigIntFromWords(ContextPtr ctx,
   Isolate *iso = ctx->iso;
   ISOLATE_SCOPE(iso);
   TryCatch try_catch(iso);
-  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Local<Context> local_ctx = ctx->context();
 
   RtnValue rtn = {};
   Local<BigInt> bigint;
@@ -908,8 +865,7 @@ RtnValue NewValueBigIntFromWords(ContextPtr ctx,
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = ctx->newValue(bigint);
-  rtn.value = val;
+  rtn.value = ctx->newValue(bigint);
   return rtn;
 }
 
@@ -1002,22 +958,25 @@ RtnValue ValueToObject(ValuePtr ptr) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* new_val = ctx->newValue(obj);
-  rtn.value = new_val;
+  rtn.value = ctx->newValue(obj);
   return rtn;
 }
 
 int ValueSameValue(ValuePtr val1, ValuePtr val2) {
-  Isolate* iso = val1->iso();
+  Isolate* iso = val1.ctx->iso;
+  if (iso != val2.ctx->iso) {
+    return false;
+  }
   ISOLATE_SCOPE(iso);
-  Local<Value> value1 = val1->ptr.Get(iso);
-  Local<Value> value2 = val2->ptr.Get(iso);
+  Local<Value> value1 = Deref(val1);
+  Local<Value> value2 = Deref(val2);
 
   return value1->SameValue(value2);
 }
 
 using ValuePredicate = bool (Value::*)() const;
 
+// The guts of ValueIsXXXX(). Takes a pointer to Value::IsXXXX().
 static int ValueIs(ValuePtr ptr, ValuePredicate pred) {
   LOCAL_VALUE(ptr);
   Value *rawValue = value.operator->();
@@ -1109,23 +1068,22 @@ void ObjectSet(ValuePtr ptr, const char* key, ValuePtr prop_val) {
   LOCAL_OBJECT(ptr);
   Local<String> key_val =
       String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
-  obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
+  obj->Set(local_ctx, key_val, Deref(prop_val)).Check();
 }
 
 void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   LOCAL_OBJECT(ptr);
-  obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
+  obj->Set(local_ctx, idx, Deref(prop_val)).Check();
 }
 
 int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
-  m_value* prop_val = static_cast<m_value*>(val_ptr);
 
   if (idx >= obj->InternalFieldCount()) {
     return 0;
   }
 
-  obj->SetInternalField(idx, prop_val->ptr.Get(iso));
+  obj->SetInternalField(idx, Deref(val_ptr));
 
   return 1;
 }
@@ -1150,8 +1108,7 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* new_val = ctx->newValue(result);
-  rtn.value = new_val;
+  rtn.value = ctx->newValue(result);
   return rtn;
 }
 
@@ -1159,13 +1116,12 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
   LOCAL_OBJECT(ptr);
 
   if (idx >= obj->InternalFieldCount()) {
-    return nullptr;
+    return {};
   }
 
   Local<Value> result = obj->GetInternalField(idx);
 
-  m_value* new_val = ctx->newValue(result);
-  return new_val;
+  return {ctx, ctx->newValue(result)};
 }
 
 RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
@@ -1177,8 +1133,7 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* new_val = ctx->newValue(result);
-  rtn.value = new_val;
+  rtn.value = ctx->newValue(result);
   return rtn;
 }
 
@@ -1216,29 +1171,27 @@ RtnValue NewPromiseResolver(ContextPtr ctx) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = ctx->newValue(resolver);
-  rtn.value = val;
+  rtn.value = ctx->newValue(resolver);
   return rtn;
 }
 
-ValuePtr PromiseResolverGetPromise(ValuePtr ptr) {
+ValueRef PromiseResolverGetPromise(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
   Local<Promise> promise = resolver->GetPromise();
-  m_value* promise_val = ctx->newValue(promise);
-  return promise_val;
+  return ctx->newValue(promise);
 }
 
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr resolve_val) {
   LOCAL_VALUE(ptr);
   Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
-  return resolver->Resolve(local_ctx, resolve_val->ptr.Get(iso)).ToChecked();
+  return resolver->Resolve(local_ctx, Deref(resolve_val)).ToChecked();
 }
 
 int PromiseResolverReject(ValuePtr ptr, ValuePtr reject_val) {
   LOCAL_VALUE(ptr);
   Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
-  return resolver->Reject(local_ctx, reject_val->ptr.Get(iso)).ToChecked();
+  return resolver->Reject(local_ctx, Deref(reject_val)).ToChecked();
 }
 
 int PromiseState(ValuePtr ptr) {
@@ -1263,8 +1216,7 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* result_val = ctx->newValue(result);
-  rtn.value = result_val;
+  rtn.value = ctx->newValue(result);
   return rtn;
 }
 
@@ -1292,8 +1244,7 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* result_val = ctx->newValue(result);
-  rtn.value = result_val;
+  rtn.value = ctx->newValue(result);
   return rtn;
 }
 
@@ -1317,7 +1268,7 @@ RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
   return rtn;
 }
 
-ValuePtr PromiseResult(ValuePtr ptr) {
+ValueRef PromiseResult(ValuePtr ptr) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Value> result = promise->Result();
@@ -1331,7 +1282,7 @@ static void buildCallArguments(Isolate* iso,
                                int argc,
                                ValuePtr args[]) {
   for (int i = 0; i < argc; i++) {
-    argv[i] = args[i]->ptr.Get(iso);
+    argv[i] = Deref(args[i]);
   }
 }
 
@@ -1343,7 +1294,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
 
-  Local<Value> local_recv = recv->ptr.Get(iso);
+  Local<Value> local_recv = Deref(recv);
 
   Local<Value> result;
   if (!fn->Call(local_ctx, local_recv, argc, argv).ToLocal(&result)) {
@@ -1369,7 +1320,7 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   return rtn;
 }
 
-ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
+ValueRef FunctionSourceMapUrl(ValuePtr ptr) {
   LOCAL_VALUE(ptr)
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> result = fn->GetScriptOrigin().SourceMapUrl();
@@ -1384,5 +1335,4 @@ const char* Version() {
 
 void SetFlags(const char* flags) {
   V8::SetFlagsFromString(flags);
-}
 }

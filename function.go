@@ -21,11 +21,11 @@ func (fn *Function) Call(recv Valuer, args ...Valuer) (*Value, error) {
 	if len(args) > 0 {
 		var cArgs = make([]C.ValuePtr, len(args))
 		for i, arg := range args {
-			cArgs[i] = arg.value().ptr
+			cArgs[i] = arg.value().valuePtr()
 		}
 		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
 	}
-	rtn := C.FunctionCall(fn.ptr, recv.value().ptr, C.int(len(args)), argptr)
+	rtn := C.FunctionCall(fn.valuePtr(), recv.value().valuePtr(), C.int(len(args)), argptr)
 	return valueResult(fn.ctx, rtn)
 }
 
@@ -35,16 +35,16 @@ func (fn *Function) NewInstance(args ...Valuer) (*Object, error) {
 	if len(args) > 0 {
 		var cArgs = make([]C.ValuePtr, len(args))
 		for i, arg := range args {
-			cArgs[i] = arg.value().ptr
+			cArgs[i] = arg.value().valuePtr()
 		}
 		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
 	}
-	rtn := C.FunctionNewInstance(fn.ptr, C.int(len(args)), argptr)
+	rtn := C.FunctionNewInstance(fn.valuePtr(), C.int(len(args)), argptr)
 	return objectResult(fn.ctx, rtn)
 }
 
 // Return the source map url for a function.
 func (fn *Function) SourceMapUrl() *Value {
-	ptr := C.FunctionSourceMapUrl(fn.ptr)
+	ptr := C.FunctionSourceMapUrl(fn.valuePtr())
 	return &Value{ptr, fn.ctx}
 }

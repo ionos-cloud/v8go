@@ -46,16 +46,27 @@ extern const int ScriptCompilerConsumeCodeCache;
 extern const int ScriptCompilerEagerCompile;
 
 typedef struct m_ctx m_ctx;
-typedef struct m_value m_value;
-typedef struct m_valueScope m_valueScope;
 typedef struct m_template m_template;
 typedef struct m_unboundScript m_unboundScript;
 
 typedef m_ctx* ContextPtr;
-typedef m_value* ValuePtr;
-typedef m_valueScope* ValueScopePtr;
 typedef m_template* TemplatePtr;
 typedef m_unboundScript* UnboundScriptPtr;
+
+typedef uint32_t ValueScope;
+typedef uint32_t ValueIndex;
+
+// A reference to a value, within a context. Needs a ContextPtr to fully resolve it.
+typedef struct {
+  ValueScope scope;
+  ValueIndex index;
+} ValueRef;
+
+// An absolute reference to a value.
+typedef struct {
+  ContextPtr ctx;
+  ValueRef ref;
+} ValuePtr;
 
 typedef struct {
   const char* msg;
@@ -109,7 +120,7 @@ typedef struct {
 } CPUProfile;
 
 typedef struct {
-  ValuePtr value;
+  ValueRef value;
   RtnError error;
 } RtnValue;
 
@@ -156,7 +167,7 @@ typedef enum {    // This MUST be kept in sync with `ValueType` in value.go!
 typedef struct {
   IsolatePtr isolate;
   ContextPtr internalContext;
-  ValuePtr undefinedVal, nullVal, falseVal, trueVal;
+  ValueRef undefinedVal, nullVal, falseVal, trueVal;
 } NewIsolateResult;
 
 extern void Init();
@@ -167,7 +178,7 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
-extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);
+extern ValueRef IsolateThrowException(IsolatePtr iso, ValuePtr value);
 
 extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
                                                     const char* source,
@@ -195,8 +206,8 @@ extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source,
                           const char* origin);
 extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);
-const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr);
-extern ValuePtr ContextGlobal(ContextPtr ctx_ptr);
+const char* JSONStringify(ValuePtr);
+extern ValueRef ContextGlobal(ContextPtr ctx_ptr);
 
 extern void TemplateFreeWrapper(TemplatePtr ptr);
 extern void TemplateSetValue(TemplatePtr ptr,
@@ -218,16 +229,15 @@ extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
 extern RtnValue FunctionTemplateGetFunction(TemplatePtr ptr,
                                             ContextPtr ctx_ptr);
 
-extern ValueScopePtr PushValueScope(ContextPtr);
-extern Bool PopValueScope(ContextPtr, ValueScopePtr, Bool forgetValues);
-extern void FreeValueScope(ValueScopePtr);
+extern ValueScope PushValueScope(ContextPtr);
+extern Bool PopValueScope(ContextPtr, ValueScope);
 
-extern ValuePtr NewValueInteger(ContextPtr, int32_t v);
-extern ValuePtr NewValueIntegerFromUnsigned(ContextPtr, uint32_t v);
+extern ValueRef NewValueInteger(ContextPtr, int32_t v);
+extern ValueRef NewValueIntegerFromUnsigned(ContextPtr, uint32_t v);
 extern RtnValue NewValueString(ContextPtr, const char* v, int v_length);
-extern ValuePtr NewValueNumber(ContextPtr, double v);
-extern ValuePtr NewValueBigInt(ContextPtr, int64_t v);
-extern ValuePtr NewValueBigIntFromUnsigned(ContextPtr, uint64_t v);
+extern ValueRef NewValueNumber(ContextPtr, double v);
+extern ValueRef NewValueBigInt(ContextPtr, int64_t v);
+extern ValueRef NewValueBigIntFromUnsigned(ContextPtr, uint64_t v);
 extern RtnValue NewValueBigIntFromWords(ContextPtr,
                                         int sign_bit,
                                         int word_count,
@@ -312,21 +322,21 @@ int ObjectDelete(ValuePtr ptr, const char* key);
 int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx);
 
 extern RtnValue NewPromiseResolver(ContextPtr ctx_ptr);
-extern ValuePtr PromiseResolverGetPromise(ValuePtr ptr);
+extern ValueRef PromiseResolverGetPromise(ValuePtr ptr);
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr val_ptr);
 int PromiseResolverReject(ValuePtr ptr, ValuePtr val_ptr);
 int PromiseState(ValuePtr ptr);
 RtnValue PromiseThen(ValuePtr ptr, int callback_ref);
 RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref);
 RtnValue PromiseCatch(ValuePtr ptr, int callback_ref);
-extern ValuePtr PromiseResult(ValuePtr ptr);
+extern ValueRef PromiseResult(ValuePtr ptr);
 
 extern RtnValue FunctionCall(ValuePtr ptr,
                              ValuePtr recv,
                              int argc,
                              ValuePtr argv[]);
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
-ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
+ValueRef FunctionSourceMapUrl(ValuePtr ptr);
 
 const char* Version();
 extern void SetFlags(const char* flags);

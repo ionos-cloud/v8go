@@ -162,43 +162,25 @@ func goContext(ref int) C.ContextPtr {
 }
 
 func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
-	if rtn.value == nil {
+	if rtn.error.msg != nil {
 		return nil, newJSError(rtn.error)
 	}
 	return &Value{rtn.value, ctx}, nil
 }
 
 func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {
-	if rtn.value == nil {
+	if rtn.error.msg != nil {
 		return nil, newJSError(rtn.error)
 	}
 	return &Object{&Value{rtn.value, ctx}}, nil
 }
 
-type valueScope struct {
-	context *Context
-	ptr     C.ValueScopePtr
+func (c *Context) pushValueScope() uint32 {
+	return uint32(C.PushValueScope(c.ptr))
 }
 
-func (c *Context) pushValueScope() *valueScope {
-	scope := &valueScope{
-		context: c,
-		ptr:     C.PushValueScope(c.ptr),
-	}
-	runtime.SetFinalizer(scope, func(scope *valueScope) {
-		if scope.context.iso.ptr != nil {
-			C.FreeValueScope(scope.ptr)
-		}
-	})
-	return scope
-}
-
-func (c *Context) popValueScope(scope *valueScope, forgetValues bool) {
-	var f C.uchar = 0
-	if forgetValues {
-		f = 1
-	}
-	if C.PopValueScope(c.ptr, scope.ptr, f) == 0 {
+func (c *Context) popValueScope(scope uint32) {
+	if C.PopValueScope(c.ptr, C.uint(scope)) == 0 {
 		panic("Improper call to Context.PopValueScope: Scope is not current")
 	}
 }
@@ -207,8 +189,8 @@ func (c *Context) popValueScope(scope *valueScope, forgetValues bool) {
 // invalidated when the callback returns and must not be referenced.
 // This helps to reduce memory growth in a long-lived Context, since otherwise the Values
 // would hold onto their JavaScript counterparts until the Context is closed.
-func (c *Context) WithValueScope(callback func()) {
+func (c *Context) WithTemporaryValues(callback func()) {
 	scope := c.pushValueScope()
-	defer c.popValueScope(scope, true)
+	defer c.popValueScope(scope)
 	callback()
 }

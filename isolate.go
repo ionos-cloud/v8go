@@ -60,17 +60,17 @@ func NewIsolate() *Isolate {
 	})
 	result := C.NewIsolate()
 	iso := &Isolate{
-		ptr:       result.isolate,
-		cbs:       make(map[int]FunctionCallback),
-		null:      &Value{ptr: result.nullVal},
-		undefined: &Value{ptr: result.undefinedVal},
-		falseVal:  &Value{ptr: result.falseVal},
-		trueVal:   &Value{ptr: result.trueVal},
+		ptr: result.isolate,
+		cbs: make(map[int]FunctionCallback),
 	}
 	iso.internalContext = &Context{
 		ptr: result.internalContext,
 		iso: iso,
 	}
+	iso.null = &Value{result.nullVal, iso.internalContext}
+	iso.undefined = &Value{result.undefinedVal, iso.internalContext}
+	iso.falseVal = &Value{result.falseVal, iso.internalContext}
+	iso.trueVal = &Value{result.trueVal, iso.internalContext}
 	return iso
 }
 
@@ -168,7 +168,8 @@ func (i *Isolate) ThrowException(value *Value) *Value {
 		panic("Isolate has been disposed")
 	}
 	return &Value{
-		ptr: C.IsolateThrowException(i.ptr, value.ptr),
+		ref: C.IsolateThrowException(i.ptr, value.valuePtr()),
+		ctx: value.ctx,
 	}
 }
 

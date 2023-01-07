@@ -21,7 +21,7 @@ func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
 	ckey := C.CString(methodName)
 	defer C.free(unsafe.Pointer(ckey))
 
-	getRtn := C.ObjectGet(o.ptr, ckey)
+	getRtn := C.ObjectGet(o.valuePtr(), ckey)
 	prop, err := valueResult(o.ctx, getRtn)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (o *Object) Set(key string, val interface{}) error {
 
 	ckey := C.CString(key)
 	defer C.free(unsafe.Pointer(ckey))
-	C.ObjectSet(o.ptr, ckey, value.ptr)
+	C.ObjectSet(o.valuePtr(), ckey, value.valuePtr())
 	return nil
 }
 
@@ -59,7 +59,7 @@ func (o *Object) SetIdx(idx uint32, val interface{}) error {
 		return err
 	}
 
-	C.ObjectSetIdx(o.ptr, C.uint32_t(idx), value.ptr)
+	C.ObjectSetIdx(o.valuePtr(), C.uint32_t(idx), value.valuePtr())
 
 	return nil
 }
@@ -73,7 +73,7 @@ func (o *Object) SetInternalField(idx uint32, val interface{}) error {
 		return err
 	}
 
-	inserted := C.ObjectSetInternalField(o.ptr, C.int(idx), value.ptr)
+	inserted := C.ObjectSetInternalField(o.valuePtr(), C.int(idx), value.valuePtr())
 
 	if inserted == 0 {
 		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
@@ -84,7 +84,7 @@ func (o *Object) SetInternalField(idx uint32, val interface{}) error {
 
 // InternalFieldCount returns the number of internal fields this Object has.
 func (o *Object) InternalFieldCount() uint32 {
-	count := C.ObjectInternalFieldCount(o.ptr)
+	count := C.ObjectInternalFieldCount(o.valuePtr())
 	return uint32(count)
 }
 
@@ -93,7 +93,7 @@ func (o *Object) Get(key string) (*Value, error) {
 	ckey := C.CString(key)
 	defer C.free(unsafe.Pointer(ckey))
 
-	rtn := C.ObjectGet(o.ptr, ckey)
+	rtn := C.ObjectGet(o.valuePtr(), ckey)
 	return valueResult(o.ctx, rtn)
 }
 
@@ -101,17 +101,17 @@ func (o *Object) Get(key string) (*Value, error) {
 // or the JS undefined value if the index hadn't been set.
 // Panics if given an out of range index.
 func (o *Object) GetInternalField(idx uint32) *Value {
-	rtn := C.ObjectGetInternalField(o.ptr, C.int(idx))
-	if rtn == nil {
+	rtn := C.ObjectGetInternalField(o.valuePtr(), C.int(idx))
+	if rtn.ctx == nil {
 		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
 	}
-	return &Value{rtn, o.ctx}
+	return &Value{rtn.ref, o.ctx}
 
 }
 
 // GetIdx tries to get a Value at a give Object index.
 func (o *Object) GetIdx(idx uint32) (*Value, error) {
-	rtn := C.ObjectGetIdx(o.ptr, C.uint32_t(idx))
+	rtn := C.ObjectGetIdx(o.valuePtr(), C.uint32_t(idx))
 	return valueResult(o.ctx, rtn)
 }
 
@@ -120,22 +120,22 @@ func (o *Object) GetIdx(idx uint32) (*Value, error) {
 func (o *Object) Has(key string) bool {
 	ckey := C.CString(key)
 	defer C.free(unsafe.Pointer(ckey))
-	return C.ObjectHas(o.ptr, ckey) != 0
+	return C.ObjectHas(o.valuePtr(), ckey) != 0
 }
 
 // HasIdx returns true if the object has a value at the given index.
 func (o *Object) HasIdx(idx uint32) bool {
-	return C.ObjectHasIdx(o.ptr, C.uint32_t(idx)) != 0
+	return C.ObjectHasIdx(o.valuePtr(), C.uint32_t(idx)) != 0
 }
 
 // Delete returns true if successful in deleting a named property on the object.
 func (o *Object) Delete(key string) bool {
 	ckey := C.CString(key)
 	defer C.free(unsafe.Pointer(ckey))
-	return C.ObjectDelete(o.ptr, ckey) != 0
+	return C.ObjectDelete(o.valuePtr(), ckey) != 0
 }
 
 // DeleteIdx returns true if successful in deleting a value at a given index of the object.
 func (o *Object) DeleteIdx(idx uint32) bool {
-	return C.ObjectDeleteIdx(o.ptr, C.uint32_t(idx)) != 0
+	return C.ObjectDeleteIdx(o.valuePtr(), C.uint32_t(idx)) != 0
 }

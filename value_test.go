@@ -789,7 +789,7 @@ func TestValueScopes(t *testing.T) {
 	if val1.DetailString() != "value 1" {
 		t.Error("Unexpected value 1")
 	}
-	ctx.WithValueScope(func() {
+	ctx.WithTemporaryValues(func() {
 		val2, _ := v8.NewValue(iso, "value 2")
 		if val2.DetailString() != "value 2" {
 			t.Error("Unexpected value 2")

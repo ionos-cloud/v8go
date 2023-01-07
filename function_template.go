@@ -77,25 +77,25 @@ func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
 // Note that ideally `thisAndArgs` would be split into two separate arguments, but they were combined
 // to workaround an ERROR_COMMITMENT_LIMIT error on windows that was detected in CI.
 //export goFunctionCallback
-func goFunctionCallback(ctxref int, cbref int, thisAndArgs *C.ValuePtr, argsCount int) C.ValuePtr {
+func goFunctionCallback(ctxref int, cbref int, thisAndArgs *C.ValueRef, argsCount int) C.ValuePtr {
 	ctx := getContext(ctxref)
 
 	this := *thisAndArgs
 	info := &FunctionCallbackInfo{
 		ctx:  ctx,
-		this: &Object{&Value{ptr: this, ctx: ctx}},
+		this: &Object{&Value{this, ctx}},
 		args: make([]*Value, argsCount),
 	}
 
-	argv := (*[1 << 30]C.ValuePtr)(unsafe.Pointer(thisAndArgs))[1 : argsCount+1 : argsCount+1]
+	argv := (*[1 << 30]C.ValueRef)(unsafe.Pointer(thisAndArgs))[1 : argsCount+1 : argsCount+1]
 	for i, v := range argv {
-		val := &Value{ptr: v, ctx: ctx}
+		val := &Value{v, ctx}
 		info.args[i] = val
 	}
 
 	callbackFunc := ctx.iso.getCallback(cbref)
 	if val := callbackFunc(info); val != nil {
-		return val.ptr
+		return C.ValuePtr{val.ctx.ptr, val.ref}
 	}
-	return nil
+	return C.ValuePtr{}
 }
