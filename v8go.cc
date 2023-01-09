@@ -52,16 +52,14 @@ struct m_value {
   ValueRef ref;
   Persistent<Value, CopyablePersistentTraits<Value>> ptr;
 
-  m_value()
-  :ref{}
-  { }
-
   template <class T>
   explicit m_value(Isolate *iso, ValueRef ref_, T &&val) noexcept
   :ref(ref_)
   ,ptr(iso, std::forward<T>(val))
   { }
 
+  // only present because vector::resize needs it to exist; not called
+  m_value() :ref{} { }
   // Prevents `new m_value()` -- call m_ctx::newValue() instead.
   static void* operator new(size_t) = delete;
 };
@@ -326,6 +324,14 @@ NewIsolateResult NewIsolate() {
 
 static inline m_ctx* isolateInternalContext(Isolate* iso) {
   return static_cast<m_ctx*>(iso->GetData(0));
+}
+
+WithIsolatePtr IsolateLock(Isolate *iso) {
+  return new WithIsolate(iso);
+}
+
+void IsolateUnlock(WithIsolatePtr w) {
+  delete w;
 }
 
 void IsolatePerformMicrotaskCheckpoint(IsolatePtr iso) {

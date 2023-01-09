@@ -9,6 +9,7 @@ package v8go
 import "C"
 
 import (
+	"runtime"
 	"sync"
 	"unsafe"
 )
@@ -21,6 +22,9 @@ var v8once sync.Once
 type Isolate struct {
 	ptr             C.IsolatePtr
 	internalContext *Context
+
+	v8Lock  C.WithIsolatePtr
+	v8Mutex sync.Mutex
 
 	cbMutex sync.RWMutex
 	cbSeq   int
@@ -155,8 +159,39 @@ func (i *Isolate) Dispose() {
 	if i.ptr == nil {
 		return
 	}
+	if i.v8Lock != nil {
+		i.Unlock()
+	}
 	C.IsolateDispose(i.ptr)
 	i.ptr = nil
+}
+
+// Acquires a V8 lock on the Isolate for this thread. This speeds up subsequent calls involving
+// Contexts, Values, Objects belonging to the Isolate.
+// You MUST call Unlock when done. (Disposing the Isolate will call Unlock for you.)
+// You MUST NOT make multiple calls to Lock; it's not recursive.
+func (i *Isolate) Lock() {
+	i.v8Mutex.Lock()
+	if i.v8Lock != nil {
+		panic("v8.Context.Lock called while already locked")
+	}
+	// LockOSThread ensures that C calls from this goroutine will always be made on the same
+	// OS thread. This is absolutely necessary for making nested calls to v8::Locker (here and
+	// then in whatever other methods are called) so that they'll be treated as nested calls and
+	// not calls by different threads; otherwise the subsequent call will deadlock.
+	runtime.LockOSThread()
+	i.v8Lock = C.IsolateLock(i.ptr)
+}
+
+// Releases the V8 locks acquired by Lock.
+func (i *Isolate) Unlock() {
+	if i.v8Lock == nil {
+		panic("v8.Context.Unlock called without first being locked")
+	}
+	C.IsolateUnlock(i.v8Lock)
+	i.v8Lock = nil
+	runtime.UnlockOSThread()
+	i.v8Mutex.Unlock()
 }
 
 // ThrowException schedules an exception to be thrown when returning to

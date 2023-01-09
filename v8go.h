@@ -45,6 +45,8 @@ extern const int ScriptCompilerNoCompileOptions;
 extern const int ScriptCompilerConsumeCodeCache;
 extern const int ScriptCompilerEagerCompile;
 
+typedef struct WithIsolate* WithIsolatePtr;
+
 typedef struct m_ctx m_ctx;
 typedef struct m_template m_template;
 typedef struct m_unboundScript m_unboundScript;
@@ -174,6 +176,8 @@ extern void Init();
 extern NewIsolateResult NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
+extern WithIsolatePtr IsolateLock(IsolatePtr);
+extern void IsolateUnlock(WithIsolatePtr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
