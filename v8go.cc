@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "_cgo_export.h"
 
@@ -23,17 +24,6 @@ auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
 const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;
 const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
-
-
-static void Panic(const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  fputs("*** v8go PANIC: ", stderr);
-  vfprintf(stderr, fmt, args);
-  fputs("\n", stderr);
-  va_end(args);
-  abort();  //TODO: Is there a friendlier way to trigger a Go panic?
-}
 
 
 struct m_unboundScript {
@@ -108,14 +98,15 @@ struct m_ctx {
   }
 
   Local<Value> getValue(ValueRef ref) {
-    if (ref.index >= _values.size()) {
-      Panic("Attempt to use obsolete v8go Value");
+    if (ref.index < _values.size()) {
+      V8GoValue &value = _values[ref.index];
+      if (value.ref.scope == ref.scope) {
+        return value.ptr.Get(iso);
+      }
     }
-    m_value &value = _values[ref.index];
-    if (value.ref.scope != ref.scope) {
-      Panic("Attempt to use obsolete v8go Value");
-    }
-    return value.ptr.Get(iso);
+    fprintf(stderr, "***** ILLEGAL USE OF OBSOLETE v8go.Value[#%d @%d]; returning `undefined`\n",
+      ref.index, ref.scope);
+    return v8::Undefined(iso);
   }
 
   uint32_t pushValueScope() {
@@ -144,7 +135,7 @@ private:
   std::vector<m_value> _values;
   std::vector<std::pair<ValueScope, size_t>> _savedscopes;
   ValueScope _latestScope = 1, _curScope = 1;
-  std::deque<m_unboundScript> _unboundScripts;
+  std::deque<V8GoUnboundScript> _unboundScripts; // (deque does not invalidate refs when it grows)
 #ifdef CTX_LOG_VALUES
   size_t _nValues = 0, _maxValues = 0;
 #endif

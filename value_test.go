@@ -785,21 +785,32 @@ func TestValueScopes(t *testing.T) {
 	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 
-	val1, _ := v8.NewValue(iso, "value 1")
+	val1, _ := ctx.NewValue("value 1")
 	if val1.DetailString() != "value 1" {
 		t.Error("Unexpected value 1")
 	}
+
+	var val2 *v8.Value
 	ctx.WithTemporaryValues(func() {
-		val2, _ := v8.NewValue(iso, "value 2")
+		val2, _ = ctx.NewValue("value 2")
 		if val2.DetailString() != "value 2" {
 			t.Error("Unexpected value 2")
 		}
 	})
-	val3, _ := v8.NewValue(iso, "value 3")
+
+	val3, _ := ctx.NewValue("value 3")
 	if val3.DetailString() != "value 3" {
 		t.Error("Unexpected value 3")
 	}
+
 	if val1.DetailString() != "value 1" {
 		t.Error("Unexpected value 1, second try")
+	}
+
+	if !val2.IsUndefined() {
+		t.Errorf("Unexpected obsolete val2; should now be undefined")
+	}
+	if deets := val2.DetailString(); deets != "undefined" {
+		t.Errorf("Unexpected DetailString of obsolete val2; got %q, should be %q", deets, "undefined")
 	}
 }
