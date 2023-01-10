@@ -73,10 +73,12 @@ namespace v8go {
 
 
   struct V8GoContext {
-    V8GoContext(Isolate*, Local<Context>);
+    V8GoContext(Isolate*, Local<Context>, uintptr_t goRef);
     ~V8GoContext();
 
-    Local<Context> context() {return ptr.Get(iso);}
+    static V8GoContext* fromContext(Local<Context>);
+
+    Local<Context> context() {return _ptr.Get(iso);}
 
     ValueRef addValue(Local<Value>);
 
@@ -88,11 +90,12 @@ namespace v8go {
     V8GoUnboundScript* newUnboundScript(Local<UnboundScript>);
 
     Isolate* const iso;
-    Persistent<Context> ptr;
+    uintptr_t goRef;      // a runtime.cgo.Handle pointing to the Go Context
 
   private:
     using PersistentValue = Persistent<Value, CopyablePersistentTraits<Value>>;
 
+    Persistent<Context> _ptr;
     std::vector<PersistentValue> _values;
     std::vector<ValueRef> _savedScopes;
     ValueScope _latestScope = 1, _curScope = 1;

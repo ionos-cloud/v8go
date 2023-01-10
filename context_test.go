@@ -71,31 +71,6 @@ func TestJSExceptions(t *testing.T) {
 	}
 }
 
-func TestContextRegistry(t *testing.T) {
-	t.Parallel()
-
-	ctx := v8.NewContext()
-	defer ctx.Isolate().Dispose()
-	defer ctx.Close()
-
-	ctxref := ctx.Ref()
-
-	c1 := v8.GetContext(ctxref)
-	if c1 == nil {
-		t.Error("expected context, but got <nil>")
-	}
-	if c1 != ctx {
-		t.Errorf("contexts should match %p != %p", c1, ctx)
-	}
-
-	ctx.Close()
-
-	c2 := v8.GetContext(ctxref)
-	if c2 != nil {
-		t.Error("expected context to be <nil> after close")
-	}
-}
-
 func TestMemoryLeak(t *testing.T) {
 	t.Parallel()
 

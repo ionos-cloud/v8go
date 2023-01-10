@@ -190,7 +190,7 @@ extern void CPUProfileDelete(CPUProfile* ptr);
 
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
-                             int ref);
+                             uintptr_t ref);
 extern void ContextFree(ContextPtr ptr);
 extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source, int sourceLen,

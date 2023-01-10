@@ -9,19 +9,25 @@
 
 namespace v8go {
 
-  V8GoContext::V8GoContext(Isolate *iso_, Local<Context> context_)
+  V8GoContext::V8GoContext(Isolate *iso_, Local<Context> context_, uintptr_t goRef)
   :iso(iso_)
-  ,ptr(iso_, context_)
+  ,goRef(goRef)
+  ,_ptr(iso_, context_)
   {
-    context()->SetAlignedPointerInEmbedderData(2, this);
+    context_->SetAlignedPointerInEmbedderData(1, this);
   }
 
   V8GoContext::~V8GoContext() {
-    ptr.Reset(); // (~Persistent does not do this due to NonCopyable traits)
+    _ptr.Reset(); // (~Persistent does not do this due to NonCopyable traits)
   #ifdef CTX_LOG_VALUES
     fprintf(stderr, "*** m_ctx created %zu values, max table size %zu\n", _nValues, _maxValues);
   #endif
   }
+
+  V8GoContext* V8GoContext::fromContext(Local<Context> ctx) {
+    return reinterpret_cast<V8GoContext*>(ctx->GetAlignedPointerFromEmbedderData(1));
+  }
+
 
   ValueRef V8GoContext::addValue(Local<Value> val) {
     ValueRef ref {_curScope, uint32_t(_values.size())};
@@ -82,7 +88,7 @@ namespace v8go {
 
 ContextPtr NewContext(IsolatePtr iso,
                       TemplatePtr global_template_ptr,
-                      int ref) {
+                      uintptr_t goRef) {
   WithIsolate _with(iso);
 
   Local<ObjectTemplate> global_template;
@@ -92,15 +98,9 @@ ContextPtr NewContext(IsolatePtr iso,
     global_template = ObjectTemplate::New(iso);
   }
 
-  // For function callbacks we need a reference to the context, but because of
-  // the complexities of C -> Go function pointers, we store a reference to the
-  // context as a simple integer identifier; this can then be used on the Go
-  // side to lookup the context in the context registry. We use slot 1 as slot 0
-  // has special meaning for the Chrome debugger.
   Local<Context> local_ctx = Context::New(iso, nullptr, global_template);
-  local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
 
-  return new V8GoContext(iso, std::move(local_ctx));
+  return new V8GoContext(iso, local_ctx, goRef);
 }
 
 void ContextFree(ContextPtr ctx) {

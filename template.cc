@@ -90,8 +90,8 @@ int ObjectTemplateInternalFieldCount(TemplatePtr ptr) {
 /********** FunctionTemplate **********/
 
 namespace v8go {
-    // declared in v8go.hh
-    void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
+  // declared in v8go.hh
+  void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     Isolate* iso = info.GetIsolate();
     WithIsolate _withiso(iso);
 
@@ -99,8 +99,7 @@ namespace v8go {
     // at runtime. We extract the Context reference from the embedder data so that
     // we can use the context registry to match the Context on the Go side
     Local<Context> local_ctx = iso->GetCurrentContext();
-    int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
-    V8GoContext* ctx = goContext(ctx_ref);
+    V8GoContext* ctx = V8GoContext::fromContext(local_ctx);
 
     int callback_ref = info.Data().As<Integer>()->Value();
 
@@ -110,16 +109,16 @@ namespace v8go {
     ValueRef thisAndArgs[args_count + 1];
     thisAndArgs[0] = _this;
     for (int i = 0; i < args_count; i++) {
-        thisAndArgs[1+i] = ctx->addValue(info[i]);
+      thisAndArgs[1+i] = ctx->addValue(info[i]);
     }
 
-    ValuePtr val = goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
+    ValuePtr val = goFunctionCallback(ctx->goRef, callback_ref, thisAndArgs, args_count);
     if (val.ctx != nullptr) {
-        info.GetReturnValue().Set(Deref(val));
+      info.GetReturnValue().Set(Deref(val));
     } else {
-        info.GetReturnValue().SetUndefined();
+      info.GetReturnValue().SetUndefined();
     }
-    }
+  }
 }
 
 TemplatePtr NewFunctionTemplate(IsolatePtr iso, int callback_ref) {

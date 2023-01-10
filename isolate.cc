@@ -28,7 +28,7 @@ NewIsolateResult NewIsolate() {
   iso->SetCaptureStackTraceForUncaughtExceptions(true);
 
   // Create a Context for internal use
-  V8GoContext* ctx = new V8GoContext(iso, Context::New(iso));
+  V8GoContext* ctx = new V8GoContext(iso, Context::New(iso), 0);
   iso->SetData(0, ctx);
 
   NewIsolateResult result;
