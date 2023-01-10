@@ -90,7 +90,7 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
-	rtn := C.RunScript(c.ptr, cSource, cOrigin)
+	rtn := C.RunScript(c.ptr, cSource, C.int(len(source)), cOrigin, C.int(len(origin)))
 	return valueResult(c, rtn)
 }
 

@@ -6,6 +6,10 @@ package v8go
 
 // #include <stdlib.h>
 // #include "v8go.h"
+// static RtnUnboundScript IsolateCompileUnboundScriptGo(IsolatePtr iso,
+// 									_GoString_ src, _GoString_ org, CompileOptions options) {
+// 		return IsolateCompileUnboundScript(iso, _GoStringPtr(src), _GoStringLen(src),
+//										   _GoStringPtr(org), _GoStringLen(org), options); }
 import "C"
 
 import (
@@ -103,11 +107,6 @@ type CompileOptions struct {
 // that code cache.
 // error will be of type `JSError` if not nil.
 func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOptions) (*UnboundScript, error) {
-	cSource := C.CString(source)
-	cOrigin := C.CString(origin)
-	defer C.free(unsafe.Pointer(cSource))
-	defer C.free(unsafe.Pointer(cOrigin))
-
 	var cOptions C.CompileOptions
 	if opts.CachedData != nil {
 		if opts.Mode != 0 {
@@ -122,7 +121,7 @@ func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOption
 		cOptions.compileOption = C.int(opts.Mode)
 	}
 
-	rtn := C.IsolateCompileUnboundScript(i.ptr, cSource, cOrigin, cOptions)
+	rtn := C.IsolateCompileUnboundScriptGo(i.ptr, source, origin, cOptions)
 	if rtn.ptr == nil {
 		return nil, newJSError(rtn.error)
 	}

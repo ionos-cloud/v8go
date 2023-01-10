@@ -6,6 +6,8 @@ package v8go
 
 // #include <stdlib.h>
 // #include "v8go.h"
+// static RtnValue NewValueGoString(ContextPtr ctx, _GoString_ str) {
+//		return NewValueString(ctx, _GoStringPtr(str), _GoStringLen(str)); }
 import "C"
 import (
 	"encoding/json"
@@ -80,10 +82,7 @@ func (c *Context) NewValue(val interface{}) (*Value, error) {
 			return c.iso.falseVal, nil
 		}
 	case string:
-		cstr := C.CString(v)
-		defer C.free(unsafe.Pointer(cstr))
-		rtn := C.NewValueString(c.ptr, cstr, C.int(len(v)))
-		return valueResult(c, rtn)
+		return valueResult(c, C.NewValueGoString(c.ptr, v))
 	case int32:
 		ref = C.NewValueInteger(ctxPtr, C.int(v))
 	case uint32:

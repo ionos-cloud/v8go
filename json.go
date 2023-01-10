@@ -6,6 +6,8 @@ package v8go
 
 // #include <stdlib.h>
 // #include "v8go.h"
+// static RtnValue JSONParseGo(ContextPtr ctx, _GoString_ str) {
+//		return JSONParse(ctx, _GoStringPtr(str), _GoStringLen(str)); }
 import "C"
 import (
 	"errors"
@@ -18,10 +20,7 @@ func JSONParse(ctx *Context, str string) (*Value, error) {
 	if ctx == nil {
 		return nil, errors.New("v8go: Context is required")
 	}
-	cstr := C.CString(str)
-	defer C.free(unsafe.Pointer(cstr))
-
-	rtn := C.JSONParse(ctx.ptr, cstr)
+	rtn := C.JSONParseGo(ctx.ptr, str)
 	return valueResult(ctx, rtn)
 }
 

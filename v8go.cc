@@ -304,7 +304,7 @@ NewIsolateResult NewIsolate() {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
   Isolate* iso = Isolate::New(params);
-  WithIsolate _withiso(iso);
+  WithIsolate _with(iso);
 
   iso->SetCaptureStackTraceForUncaughtExceptions(true);
 
@@ -377,8 +377,8 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
 }
 
 RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
-                                             const char* s,
-                                             const char* o,
+                                             const char* s, int sLen,
+                                             const char* o, int oLen,
                                              CompileOptions opts) {
   m_ctx *ctx = isolateInternalContext(iso);
   WithContext _with(ctx);
@@ -386,9 +386,9 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
   RtnUnboundScript rtn = {};
 
   Local<String> src =
-      String::NewFromUtf8(iso, s, NewStringType::kNormal).ToLocalChecked();
+      String::NewFromUtf8(iso, s, NewStringType::kNormal, sLen).ToLocalChecked();
   Local<String> ogn =
-      String::NewFromUtf8(iso, o, NewStringType::kNormal).ToLocalChecked();
+      String::NewFromUtf8(iso, o, NewStringType::kNormal, oLen).ToLocalChecked();
 
   ScriptCompiler::CompileOptions option =
       static_cast<ScriptCompiler::CompileOptions>(opts.compileOption);
@@ -539,24 +539,24 @@ void TemplateFreeWrapper(TemplatePtr tmpl) {
 }
 
 void TemplateSetValue(TemplatePtr ptr,
-                      const char* name,
+                      const char* name, int nameLen,
                       ValuePtr val,
                       int attributes) {
   WithTemplate _with(ptr);
 
   Local<String> prop_name =
-      String::NewFromUtf8(_with.iso, name, NewStringType::kNormal).ToLocalChecked();
+      String::NewFromUtf8(_with.iso, name, NewStringType::kNormal, nameLen).ToLocalChecked();
   _with.tmpl->Set(prop_name, Deref(val), (PropertyAttribute)attributes);
 }
 
 void TemplateSetTemplate(TemplatePtr ptr,
-                         const char* name,
+                         const char* name, int nameLen,
                          TemplatePtr obj,
                          int attributes) {
   WithTemplate _with(ptr);
 
   Local<String> prop_name =
-      String::NewFromUtf8(_with.iso, name, NewStringType::kNormal).ToLocalChecked();
+      String::NewFromUtf8(_with.iso, name, NewStringType::kNormal, nameLen).ToLocalChecked();
   _with.tmpl->Set(prop_name, obj->ptr.Get(_with.iso), (PropertyAttribute)attributes);
 }
 
@@ -694,16 +694,17 @@ void ContextFree(ContextPtr ctx) {
   delete ctx;
 }
 
-RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
+RtnValue RunScript(ContextPtr ctx, const char* source, int sourceLen,
+                   const char* origin, int originLen) {
   WithContext _with(ctx);
   auto iso = ctx->iso;
 
   RtnValue rtn = {};
 
   MaybeLocal<String> maybeSrc =
-      String::NewFromUtf8(iso, source, NewStringType::kNormal);
+      String::NewFromUtf8(iso, source, NewStringType::kNormal, sourceLen);
   MaybeLocal<String> maybeOgn =
-      String::NewFromUtf8(iso, origin, NewStringType::kNormal);
+      String::NewFromUtf8(iso, origin, NewStringType::kNormal, originLen);
   Local<String> src, ogn;
   if (!maybeSrc.ToLocal(&src) || !maybeOgn.ToLocal(&ogn)) {
     rtn.error = _with.exceptionError();
@@ -769,12 +770,12 @@ RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
   return rtn;
 }
 
-RtnValue JSONParse(ContextPtr ctx, const char* str) {
+RtnValue JSONParse(ContextPtr ctx, const char* str, int len) {
   WithContext _with(ctx);
   RtnValue rtn = {};
 
   Local<String> v8Str;
-  if (!String::NewFromUtf8(_with.iso, str, NewStringType::kNormal).ToLocal(&v8Str)) {
+  if (!String::NewFromUtf8(_with.iso, str, NewStringType::kNormal, len).ToLocal(&v8Str)) {
     rtn.error = _with.exceptionError();
   }
 
@@ -1069,10 +1070,10 @@ int /*ValueType*/ ValueGetType(ValuePtr ptr) {
 
 /********** Object **********/
 
-void ObjectSet(ValuePtr ptr, const char* key, ValuePtr prop_val) {
+void ObjectSet(ValuePtr ptr, const char* key, int keyLen, ValuePtr prop_val) {
   WithObject _with(ptr);
   Local<String> key_val =
-      String::NewFromUtf8(_with.iso, key, NewStringType::kNormal).ToLocalChecked();
+      String::NewFromUtf8(_with.iso, key, NewStringType::kNormal, keyLen).ToLocalChecked();
   _with.obj->Set(_with.local_ctx, key_val, Deref(prop_val)).Check();
 }
 
@@ -1098,12 +1099,12 @@ int ObjectInternalFieldCount(ValuePtr ptr) {
   return _with.obj->InternalFieldCount();
 }
 
-RtnValue ObjectGet(ValuePtr ptr, const char* key) {
+RtnValue ObjectGet(ValuePtr ptr, const char* key, int keyLen) {
   WithObject _with(ptr);
   RtnValue rtn = {};
 
   Local<String> key_val;
-  if (!String::NewFromUtf8(_with.iso, key, NewStringType::kNormal)
+  if (!String::NewFromUtf8(_with.iso, key, NewStringType::kNormal, keyLen)
            .ToLocal(&key_val)) {
     rtn.error = _with.exceptionError();
     return rtn;
@@ -1142,10 +1143,10 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
   return rtn;
 }
 
-int ObjectHas(ValuePtr ptr, const char* key) {
+int ObjectHas(ValuePtr ptr, const char* key, int keyLen) {
   WithObject _with(ptr);
   Local<String> key_val =
-      String::NewFromUtf8(_with.iso, key, NewStringType::kNormal).ToLocalChecked();
+      String::NewFromUtf8(_with.iso, key, NewStringType::kNormal, keyLen).ToLocalChecked();
   return _with.obj->Has(_with.local_ctx, key_val).ToChecked();
 }
 
@@ -1154,10 +1155,10 @@ int ObjectHasIdx(ValuePtr ptr, uint32_t idx) {
   return _with.obj->Has(_with.local_ctx, idx).ToChecked();
 }
 
-int ObjectDelete(ValuePtr ptr, const char* key) {
+int ObjectDelete(ValuePtr ptr, const char* key, int keyLen) {
   WithObject _with(ptr);
   Local<String> key_val =
-      String::NewFromUtf8(_with.iso, key, NewStringType::kNormal).ToLocalChecked();
+      String::NewFromUtf8(_with.iso, key, NewStringType::kNormal, keyLen).ToLocalChecked();
   return _with.obj->Delete(_with.local_ctx, key_val).ToChecked();
 }
 
