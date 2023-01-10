@@ -9,12 +9,12 @@
 
 ValueRef NewValueInteger(ContextPtr ctx, int32_t v) {
   WithIsolate _withiso(ctx->iso);
-  return ctx->newValue(Integer::New(ctx->iso, v));
+  return ctx->addValue(Integer::New(ctx->iso, v));
 }
 
 ValueRef NewValueIntegerFromUnsigned(ContextPtr ctx, uint32_t v) {
   WithIsolate _withiso(ctx->iso);
-  return ctx->newValue(Integer::NewFromUnsigned(ctx->iso, v));
+  return ctx->addValue(Integer::NewFromUnsigned(ctx->iso, v));
 }
 
 RtnValue NewValueString(ContextPtr ctx, const char* v, int v_length) {
@@ -26,23 +26,23 @@ RtnValue NewValueString(ContextPtr ctx, const char* v, int v_length) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ctx->newValue(str);
+  rtn.value = ctx->addValue(str);
   return rtn;
 }
 
 ValueRef NewValueNumber(ContextPtr ctx, double v) {
   WithIsolate _withiso(ctx->iso);
-  return ctx->newValue(Number::New(ctx->iso, v));
+  return ctx->addValue(Number::New(ctx->iso, v));
 }
 
 ValueRef NewValueBigInt(ContextPtr ctx, int64_t v) {
   WithIsolate _withiso(ctx->iso);
-  return ctx->newValue(BigInt::New(ctx->iso, v));
+  return ctx->addValue(BigInt::New(ctx->iso, v));
 }
 
 ValueRef NewValueBigIntFromUnsigned(ContextPtr ctx, uint64_t v) {
   WithIsolate _withiso(ctx->iso);
-  return ctx->newValue(BigInt::NewFromUnsigned(ctx->iso, v));
+  return ctx->addValue(BigInt::NewFromUnsigned(ctx->iso, v));
 }
 
 RtnValue NewValueBigIntFromWords(ContextPtr ctx,
@@ -58,7 +58,7 @@ RtnValue NewValueBigIntFromWords(ContextPtr ctx,
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ctx->newValue(bigint);
+  rtn.value = ctx->addValue(bigint);
   return rtn;
 }
 
@@ -147,7 +147,7 @@ RtnValue ValueToObject(ValuePtr ptr) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ptr.ctx->newValue(obj);
+  rtn.value = ptr.ctx->addValue(obj);
   return rtn;
 }
 

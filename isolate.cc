@@ -34,10 +34,10 @@ NewIsolateResult NewIsolate() {
   NewIsolateResult result;
   result.isolate = iso;
   result.internalContext = ctx;
-  result.undefinedVal = ctx->newValue(Undefined(iso));
-  result.nullVal = ctx->newValue(Null(iso));
-  result.falseVal = ctx->newValue(Boolean::New(iso, false));
-  result.trueVal = ctx->newValue(Boolean::New(iso, true));
+  result.undefinedVal = ctx->addValue(Undefined(iso));
+  result.nullVal = ctx->addValue(Null(iso));
+  result.falseVal = ctx->addValue(Boolean::New(iso, false));
+  result.trueVal = ctx->addValue(Boolean::New(iso, true));
   return result;
 }
 
@@ -98,7 +98,7 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
 ValueRef IsolateThrowException(IsolatePtr iso, ValuePtr value) {
   WithIsolate _withiso(iso);
   Local<Value> throw_ret_val = iso->ThrowException(Deref(value));
-  return value.ctx->newValue(throw_ret_val);
+  return value.ctx->addValue(throw_ret_val);
 }
 
 
@@ -189,7 +189,7 @@ RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ctx->newValue(result);
+  rtn.value = ctx->addValue(result);
   return rtn;
 }
 

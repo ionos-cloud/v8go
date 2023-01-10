@@ -9,17 +9,6 @@
 
 namespace v8go {
 
-  V8GoContext* V8GoContext::forV8Context(Local<Context> ctx) {
-    return (V8GoContext*) ctx->GetAlignedPointerFromEmbedderData(2);
-  }
-
-  V8GoContext* V8GoContext::currentForIsolate(Isolate *iso) {
-    if (iso->InContext())
-      return forV8Context(iso->GetCurrentContext());
-    else
-      return nullptr;
-  }
-
   V8GoContext::V8GoContext(Isolate *iso_, Local<Context> context_)
   :iso(iso_)
   ,ptr(iso_, context_)
@@ -34,9 +23,9 @@ namespace v8go {
   #endif
   }
 
-  ValueRef V8GoContext::newValue(Local<Value> val) {
+  ValueRef V8GoContext::addValue(Local<Value> val) {
     ValueRef ref {_curScope, uint32_t(_values.size())};
-    _values.emplace_back(iso, ref, val);
+    _values.emplace_back(PersistentValue(iso, val));
   #ifdef CTX_LOG_VALUES
     ++_nValues;
     if (ref.index >= _maxValues)
@@ -47,30 +36,37 @@ namespace v8go {
 
   Local<Value> V8GoContext::getValue(ValueRef ref) {
     if (ref.index < _values.size()) {
-      ValueEntry &value = _values[ref.index];
-      if (value.ref.scope == ref.scope) {
-        return value.ptr.Get(iso);
+      auto scope = _curScope;
+      for (auto i = _savedScopes.rbegin(); i != _savedScopes.rend(); ++i) {
+        if (ref.index >= i->index) {
+          break;
+        }
+        scope = i->scope;
+      }
+      if (ref.scope == scope) {
+        return _values[ref.index].Get(iso);
       }
     }
+
     fprintf(stderr, "***** ILLEGAL USE OF OBSOLETE v8go.Value[#%d @%d]; returning `undefined`\n",
-      ref.index, ref.scope);
+            ref.index, ref.scope);
     return v8::Undefined(iso);
   }
 
   uint32_t V8GoContext::pushValueScope() {
-    _savedscopes.emplace_back(_curScope, _values.size());
+    _savedScopes.push_back(ValueRef{_curScope, uint32_t(_values.size())});
     _curScope = ++_latestScope;
     return _curScope;
   }
 
   bool V8GoContext::popValueScope(uint32_t scopeID) {
-    if (scopeID != _curScope || _savedscopes.empty()) {
+    if (scopeID != _curScope || _savedScopes.empty()) {
       return false;
     }
-    size_t size;
-    std::tie(_curScope, size) = _savedscopes.back();
-    _savedscopes.pop_back();
-    _values.resize(size);
+    ValueRef r = _savedScopes.back();
+    _savedScopes.pop_back();
+    _curScope = r.scope;
+    _values.resize(r.index);
     return true;
   }
 
@@ -87,7 +83,7 @@ namespace v8go {
 ContextPtr NewContext(IsolatePtr iso,
                       TemplatePtr global_template_ptr,
                       int ref) {
-  WithIsolate _withiso(iso);
+  WithIsolate _with(iso);
 
   Local<ObjectTemplate> global_template;
   if (global_template_ptr != nullptr) {
@@ -113,7 +109,7 @@ void ContextFree(ContextPtr ctx) {
 
 ValueRef ContextGlobal(ContextPtr ctx) {
   WithContext _with(ctx);
-  return ctx->newValue(_with.local_ctx->Global());
+  return ctx->addValue(_with.local_ctx->Global());
 }
 
 RtnValue RunScript(ContextPtr ctx, const char* source, int sourceLen,
@@ -144,7 +140,7 @@ RtnValue RunScript(ContextPtr ctx, const char* source, int sourceLen,
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ctx->newValue(result);
+  rtn.value = ctx->addValue(result);
   return rtn;
 }
 
@@ -165,7 +161,7 @@ RtnValue JSONParse(ContextPtr ctx, const char* str, int len) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ctx->newValue(result);
+  rtn.value = ctx->addValue(result);
   return rtn;
 }
 

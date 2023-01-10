@@ -61,7 +61,7 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key, int keyLen) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ptr.ctx->newValue(result);
+  rtn.value = ptr.ctx->addValue(result);
   return rtn;
 }
 
@@ -74,7 +74,7 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
 
   Local<Value> result = _with.obj->GetInternalField(idx);
 
-  return {ptr.ctx, ptr.ctx->newValue(result)};
+  return {ptr.ctx, ptr.ctx->addValue(result)};
 }
 
 RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
@@ -86,7 +86,7 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ptr.ctx->newValue(result);
+  rtn.value = ptr.ctx->addValue(result);
   return rtn;
 }
 
@@ -125,7 +125,7 @@ RtnValue NewPromiseResolver(ContextPtr ctx) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ctx->newValue(resolver);
+  rtn.value = ctx->addValue(resolver);
   return rtn;
 }
 
@@ -133,7 +133,7 @@ ValueRef PromiseResolverGetPromise(ValuePtr ptr) {
   WithValue _with(ptr);
   Local<Promise::Resolver> resolver = _with.value.As<Promise::Resolver>();
   Local<Promise> promise = resolver->GetPromise();
-  return ptr.ctx->newValue(promise);
+  return ptr.ctx->addValue(promise);
 }
 
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr resolve_val) {
@@ -170,7 +170,7 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ptr.ctx->newValue(result);
+  rtn.value = ptr.ctx->addValue(result);
   return rtn;
 }
 
@@ -198,7 +198,7 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ptr.ctx->newValue(result);
+  rtn.value = ptr.ctx->addValue(result);
   return rtn;
 }
 
@@ -218,7 +218,7 @@ RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ptr.ctx->newValue(result);
+  rtn.value = ptr.ctx->addValue(result);
   return rtn;
 }
 
@@ -226,7 +226,7 @@ ValueRef PromiseResult(ValuePtr ptr) {
   WithValue _with(ptr);
   Local<Promise> promise = _with.value.As<Promise>();
   Local<Value> result = promise->Result();
-  return ptr.ctx->newValue(result);
+  return ptr.ctx->addValue(result);
 }
 
 
@@ -256,7 +256,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ptr.ctx->newValue(result);
+  rtn.value = ptr.ctx->addValue(result);
   return rtn;
 }
 
@@ -271,7 +271,7 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  rtn.value = ptr.ctx->newValue(result);
+  rtn.value = ptr.ctx->addValue(result);
   return rtn;
 }
 
@@ -279,5 +279,5 @@ ValueRef FunctionSourceMapUrl(ValuePtr ptr) {
   WithValue _with(ptr);
   Local<Function> fn = Local<Function>::Cast(_with.value);
   Local<Value> result = fn->GetScriptOrigin().SourceMapUrl();
-  return ptr.ctx->newValue(result);
+  return ptr.ctx->addValue(result);
 }

@@ -72,35 +72,13 @@ namespace v8go {
   };
 
 
-  struct ValueEntry {
-    ValueRef ref;
-    Persistent<Value, CopyablePersistentTraits<Value>> ptr;
-
-    ValueEntry(Isolate *iso, ValueRef ref_, Local<Value> val) noexcept
-    :ref(ref_)
-    ,ptr(iso, val)
-    { }
-
-    // only present because vector::resize needs it to exist; not called
-    ValueEntry() :ref{} { }
-    // Prevents `new ValueEntry()` -- call m_ctx::newValue() instead.
-    static void* operator new(size_t) = delete;
-  };
-
-
   struct V8GoContext {
-    Isolate* const iso;
-    Persistent<Context> ptr;
-
-    static V8GoContext* forV8Context(Local<Context>);
-    static V8GoContext* currentForIsolate(Isolate *);
-
-    V8GoContext(Isolate *, Local<Context>);
+    V8GoContext(Isolate*, Local<Context>);
     ~V8GoContext();
 
     Local<Context> context() {return ptr.Get(iso);}
 
-    ValueRef newValue(Local<Value>);
+    ValueRef addValue(Local<Value>);
 
     Local<Value> getValue(ValueRef);
 
@@ -109,9 +87,14 @@ namespace v8go {
 
     V8GoUnboundScript* newUnboundScript(Local<UnboundScript>);
 
+    Isolate* const iso;
+    Persistent<Context> ptr;
+
   private:
-    std::vector<ValueEntry> _values;
-    std::vector<std::pair<ValueScope, size_t>> _savedscopes;
+    using PersistentValue = Persistent<Value, CopyablePersistentTraits<Value>>;
+
+    std::vector<PersistentValue> _values;
+    std::vector<ValueRef> _savedScopes;
     ValueScope _latestScope = 1, _curScope = 1;
     std::deque<V8GoUnboundScript> _unboundScripts; // (deque does not invalidate refs when it grows)
   #ifdef CTX_LOG_VALUES

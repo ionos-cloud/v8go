@@ -69,7 +69,7 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
     return rtn;
   }
 
-  rtn.value = ctx->newValue(obj);
+  rtn.value = ctx->addValue(obj);
   return rtn;
 }
 
@@ -104,13 +104,13 @@ namespace v8go {
 
     int callback_ref = info.Data().As<Integer>()->Value();
 
-    ValueRef _this = ctx->newValue(info.This());
+    ValueRef _this = ctx->addValue(info.This());
 
     int args_count = info.Length();
     ValueRef thisAndArgs[args_count + 1];
     thisAndArgs[0] = _this;
     for (int i = 0; i < args_count; i++) {
-        thisAndArgs[1+i] = ctx->newValue(info[i]);
+        thisAndArgs[1+i] = ctx->addValue(info[i]);
     }
 
     ValuePtr val = goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
@@ -150,6 +150,6 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
     return rtn;
   }
 
-  rtn.value = ctx->newValue(fn);
+  rtn.value = ctx->addValue(fn);
   return rtn;
 }
