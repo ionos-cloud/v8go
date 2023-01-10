@@ -4,10 +4,12 @@
 
 package v8go
 
-// #include <stdlib.h>
-// #include "v8go.h"
-// static RtnValue NewValueGoString(ContextPtr ctx, _GoString_ str) {
-//		return NewValueString(ctx, _GoStringPtr(str), _GoStringLen(str)); }
+/*
+#include <stdlib.h>
+#include "v8go.h"
+static RtnValue NewValueGoString(ContextPtr ctx, _GoString_ str) {
+	return NewValueString(ctx, _GoStringPtr(str), _GoStringLen(str)); }
+*/
 import "C"
 import (
 	"encoding/json"

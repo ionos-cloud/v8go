@@ -4,12 +4,14 @@
 
 package v8go
 
-// #include <stdlib.h>
-// #include "v8go.h"
-// static RtnUnboundScript IsolateCompileUnboundScriptGo(IsolatePtr iso,
-// 									_GoString_ src, _GoString_ org, CompileOptions options) {
-// 		return IsolateCompileUnboundScript(iso, _GoStringPtr(src), _GoStringLen(src),
-//										   _GoStringPtr(org), _GoStringLen(org), options); }
+/*
+#include <stdlib.h>
+#include "v8go.h"
+static RtnUnboundScript IsolateCompileUnboundScriptGo(IsolatePtr iso,
+								_GoString_ src, _GoString_ org, CompileOptions options) {
+	return IsolateCompileUnboundScript(iso, _GoStringPtr(src), _GoStringLen(src),
+									_GoStringPtr(org), _GoStringLen(org), options); }
+*/
 import "C"
 
 import (

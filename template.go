@@ -4,19 +4,21 @@
 
 package v8go
 
-// #include <stdlib.h>
-// #include "v8go.h"
-// static void TemplateSetValueGo(TemplatePtr ptr,
-//								_GoString_ name,
-//								ValuePtr val_ptr,
-//								int attributes) {
-// 		return TemplateSetValue(ptr, _GoStringPtr(name), _GoStringLen(name), val_ptr, attributes);}
-// static void TemplateSetTemplateGo(TemplatePtr ptr,
-// 	   								 _GoString_ name,
-// 	   								 TemplatePtr obj_ptr,
-// 	   								 int attributes) {
-// 		return TemplateSetTemplate(ptr, _GoStringPtr(name), _GoStringLen(name),
-//								   obj_ptr, attributes); }
+/*
+#include <stdlib.h>
+#include "v8go.h"
+static void TemplateSetValueGo(TemplatePtr ptr,
+								_GoString_ name,
+								ValuePtr val_ptr,
+								int attributes) {
+	return TemplateSetValue(ptr, _GoStringPtr(name), _GoStringLen(name), val_ptr, attributes);}
+static void TemplateSetTemplateGo(TemplatePtr ptr,
+	   							_GoString_ name,
+	   							TemplatePtr obj_ptr,
+	   							int attributes) {
+	return TemplateSetTemplate(ptr, _GoStringPtr(name), _GoStringLen(name),
+							   obj_ptr, attributes); }
+*/
 import "C"
 import (
 	"errors"

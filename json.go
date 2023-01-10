@@ -4,10 +4,12 @@
 
 package v8go
 
-// #include <stdlib.h>
-// #include "v8go.h"
-// static RtnValue JSONParseGo(ContextPtr ctx, _GoString_ str) {
-//		return JSONParse(ctx, _GoStringPtr(str), _GoStringLen(str)); }
+/*
+#include <stdlib.h>
+#include "v8go.h"
+static RtnValue JSONParseGo(ContextPtr ctx, _GoString_ str) {
+	return JSONParse(ctx, _GoStringPtr(str), _GoStringLen(str)); }
+*/
 import "C"
 import (
 	"errors"

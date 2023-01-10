@@ -4,16 +4,18 @@
 
 package v8go
 
-// #include <stdlib.h>
-// #include "v8go.h"
-// static RtnValue ObjectGetGo(ValuePtr ptr, _GoString_ key) {
-//		return ObjectGet(ptr, _GoStringPtr(key), _GoStringLen(key)); }
-// static int ObjectHasGo(ValuePtr ptr, _GoString_ key) {
-//		return ObjectHas(ptr, _GoStringPtr(key), _GoStringLen(key)); }
-// static void ObjectSetGo(ValuePtr ptr, _GoString_ key, ValuePtr val_ptr) {
-//		ObjectSet(ptr, _GoStringPtr(key), _GoStringLen(key), val_ptr); }
-// static int ObjectDeleteGo(ValuePtr ptr, _GoString_ key) {
-//		return ObjectDelete(ptr, _GoStringPtr(key), _GoStringLen(key)); }
+/*
+#include <stdlib.h>
+#include "v8go.h"
+static RtnValue ObjectGetGo(ValuePtr ptr, _GoString_ key) {
+	return ObjectGet(ptr, _GoStringPtr(key), _GoStringLen(key)); }
+static int ObjectHasGo(ValuePtr ptr, _GoString_ key) {
+	return ObjectHas(ptr, _GoStringPtr(key), _GoStringLen(key)); }
+static void ObjectSetGo(ValuePtr ptr, _GoString_ key, ValuePtr val_ptr) {
+	ObjectSet(ptr, _GoStringPtr(key), _GoStringLen(key), val_ptr); }
+static int ObjectDeleteGo(ValuePtr ptr, _GoString_ key) {
+	return ObjectDelete(ptr, _GoStringPtr(key), _GoStringLen(key)); }
+*/
 import "C"
 import (
 	"fmt"
