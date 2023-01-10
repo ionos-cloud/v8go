@@ -162,19 +162,21 @@ static Local<Value> Deref(ValuePtr ptr) {
 }
 
 
-const char* CopyString(std::string str) {
-  int len = str.length();
+RtnString CopyString(Isolate *iso, Local<String> str) {
+  int len = str->Utf8Length(iso);
   char* mem = (char*)malloc(len + 1);
-  memcpy(mem, str.data(), len);
-  mem[len] = 0;
-  return mem;
+  str->WriteUtf8(iso, mem);
+  return {mem, len};
 }
 
-const char* CopyString(String::Utf8Value& value) {
-  if (value.length() == 0) {
-    return nullptr;
+RtnString CopyString(Isolate *iso, Local<Value> val) {
+  TryCatch tc(iso);
+  Local<Context> context = iso->GetCurrentContext();
+  Local<String> str;
+  if (!val->ToString(context).ToLocal(&str)) {
+    return {nullptr, 0};
   }
-  return CopyString(std::string(*value, value.length()));
+  return CopyString(iso, str);
 }
 
 static RtnError ExceptionError(TryCatch& try_catch,
@@ -185,13 +187,11 @@ static RtnError ExceptionError(TryCatch& try_catch,
   RtnError rtn = {nullptr, nullptr, nullptr};
 
   if (try_catch.HasTerminated()) {
-    rtn.msg =
-        CopyString("ExecutionTerminated: script execution has been terminated");
+    rtn.msg = strdup("ExecutionTerminated: script execution has been terminated");
     return rtn;
   }
 
-  String::Utf8Value exception(iso, try_catch.Exception());
-  rtn.msg = CopyString(exception);
+  rtn.msg = CopyString(iso, try_catch.Exception()).data;
 
   Local<Message> msg = try_catch.Message();
   if (!msg.IsEmpty()) {
@@ -207,13 +207,12 @@ static RtnError ExceptionError(TryCatch& try_catch,
       sb << ":"
          << start.ToChecked() + 1;  // + 1 to match output from stack trace
     }
-    rtn.location = CopyString(sb.str());
+    rtn.location = strdup(sb.str().c_str());
   }
 
   Local<Value> mstack;
   if (try_catch.StackTrace(ctx).ToLocal(&mstack)) {
-    String::Utf8Value stack(iso, mstack);
-    rtn.stack = CopyString(stack);
+    rtn.stack = CopyString(iso, mstack).data;
   }
 
   return rtn;
@@ -243,7 +242,7 @@ struct WithTemplate : public WithIsolate {
   ,tmpl(tmpl_ptr->ptr.Get(iso))
   { }
 
-  Isolate*        iso;
+  Isolate* const  iso;
   Local<Template> tmpl;
 };
 
@@ -261,7 +260,7 @@ struct WithContext : public WithIsolate {
     return ExceptionError(try_catch, iso, local_ctx);
   }
 
-  Isolate*        iso;
+  Isolate* const  iso;
   TryCatch        try_catch;
   Local<Context>  local_ctx;
   Context::Scope  context_scope;
@@ -274,8 +273,7 @@ struct WithValue : public WithContext {
   ,value(Deref(val))
   { }
 
-
-  Local<Value> value;
+  Local<Value> const value;
 };
 
 
@@ -285,7 +283,7 @@ struct WithObject : public WithValue {
   ,obj(value.As<Object>())
   { }
 
-  Local<Object> obj;
+  Local<Object> const obj;
 };
 
 
@@ -498,8 +496,7 @@ CPUProfile* CPUProfilerStopProfiling(CPUProfiler* profiler, const char* title) {
   profile->ptr = profiler->ptr->StopProfiling(title_str);
 
   Local<String> str = profile->ptr->GetTitle();
-  String::Utf8Value t(profiler->iso, str);
-  profile->title = CopyString(t);
+  profile->title = CopyString(profiler->iso, str).data;
 
   CPUProfileNode* root = NewCPUProfileNode(profile->ptr->GetTopDownRoot());
   profile->root = root;
@@ -777,6 +774,7 @@ RtnValue JSONParse(ContextPtr ctx, const char* str, int len) {
   Local<String> v8Str;
   if (!String::NewFromUtf8(_with.iso, str, NewStringType::kNormal, len).ToLocal(&v8Str)) {
     rtn.error = _with.exceptionError();
+    return rtn;
   }
 
   Local<Value> result;
@@ -789,18 +787,13 @@ RtnValue JSONParse(ContextPtr ctx, const char* str, int len) {
 }
 
 const char* JSONStringify(ValuePtr val) {
-  Isolate* iso = val.ctx->iso;
-  WithIsolate _withiso(iso);
-
-  Local<Context> local_ctx = val.ctx->context();
-  Context::Scope context_scope(local_ctx);
+  WithValue _with(val);
 
   Local<String> str;
-  if (!JSON::Stringify(local_ctx, Deref(val)).ToLocal(&str)) {
+  if (!JSON::Stringify(_with.local_ctx, _with.value).ToLocal(&str)) {
     return nullptr;
   }
-  String::Utf8Value json(iso, str);
-  return CopyString(json);
+  return CopyString(_with.iso, str).data;
 }
 
 ValueRef ContextGlobal(ContextPtr ctx) {
@@ -919,25 +912,18 @@ RtnString ValueToDetailString(ValuePtr ptr) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  String::Utf8Value ds(_with.iso, str);
-  rtn.data = CopyString(ds);
-  rtn.length = ds.length();
-  return rtn;
+  return CopyString(_with.iso, str);
 }
 
 RtnString ValueToString(ValuePtr ptr) {
   WithValue _with(ptr);
   RtnString rtn = {0};
-  // String::Utf8Value will result in an empty string if conversion to a string
-  // fails
-  // TODO: Consider propagating the JS error. A fallback value could be returned
-  // in Value.String()
-  String::Utf8Value src(_with.iso, _with.value);
-  char* data = static_cast<char*>(malloc(src.length()));
-  memcpy(data, *src, src.length());
-  rtn.data = data;
-  rtn.length = src.length();
-  return rtn;
+  Local<String> str;
+  if (!_with.value->ToString(_with.local_ctx).ToLocal(&str)) {
+    rtn.error = _with.exceptionError();
+    return rtn;
+  }
+  return CopyString(_with.iso, str);
 }
 
 uint32_t ValueToUint32(ValuePtr ptr) {
