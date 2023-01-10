@@ -48,7 +48,11 @@ func Null(iso *Isolate) *Value {
 }
 
 func (val *Value) valuePtr() C.ValuePtr {
-	return C.ValuePtr{val.ctx.ptr, val.ref}
+	if ptr := val.ctx.ptr; ptr != nil {
+		return C.ValuePtr{ptr, val.ref}
+	} else {
+		panic("Attempt to use a v8go.Value after its Context was closed")
+	}
 }
 
 // NewValue will create a primitive value; see Context.NewValue for details.
@@ -305,12 +309,7 @@ func (v *Value) SameValue(other *Value) bool {
 	return C.ValueSameValue(v.valuePtr(), other.valuePtr()) != 0
 }
 
-// IsUndefined returns true if this value is the undefined value. See ECMA-262 4.3.10.
-func (v *Value) IsUndefined() bool {
-	return C.ValueIsUndefined(v.valuePtr()) != 0
-}
-
-// Enumerated type that distinguishes between common types of Values.
+// Enumeration returned by Value.GetType to distinguish between common types of Values.
 type ValueType int8
 
 const (
@@ -330,6 +329,11 @@ const (
 // GetType returns an enumeration of the most common value types.
 func (v *Value) GetType() ValueType {
 	return ValueType(C.ValueGetType(v.valuePtr()))
+}
+
+// IsUndefined returns true if this value is the undefined value. See ECMA-262 4.3.10.
+func (v *Value) IsUndefined() bool {
+	return C.ValueIsUndefined(v.valuePtr()) != 0
 }
 
 // IsNull returns true if this value is the null value. See ECMA-262 4.3.11.

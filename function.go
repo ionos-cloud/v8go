@@ -7,6 +7,7 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"runtime"
 	"unsafe"
 )
 
@@ -15,31 +16,30 @@ type Function struct {
 	*Value
 }
 
+func convertArgs(args []Valuer) ([]C.ValuePtr, *C.ValuePtr) {
+	if len(args) == 0 {
+		return nil, nil
+	}
+	var cArgs = make([]C.ValuePtr, len(args))
+	for i, arg := range args {
+		cArgs[i] = arg.value().valuePtr()
+	}
+	return cArgs, (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
+}
+
 // Call this JavaScript function with the given arguments.
 func (fn *Function) Call(recv Valuer, args ...Valuer) (*Value, error) {
-	var argptr *C.ValuePtr
-	if len(args) > 0 {
-		var cArgs = make([]C.ValuePtr, len(args))
-		for i, arg := range args {
-			cArgs[i] = arg.value().valuePtr()
-		}
-		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
-	}
+	cArgs, argptr := convertArgs(args)
 	rtn := C.FunctionCall(fn.valuePtr(), recv.value().valuePtr(), C.int(len(args)), argptr)
+	runtime.KeepAlive(cArgs)
 	return valueResult(fn.ctx, rtn)
 }
 
 // Invoke a constructor function to create an object instance.
 func (fn *Function) NewInstance(args ...Valuer) (*Object, error) {
-	var argptr *C.ValuePtr
-	if len(args) > 0 {
-		var cArgs = make([]C.ValuePtr, len(args))
-		for i, arg := range args {
-			cArgs[i] = arg.value().valuePtr()
-		}
-		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
-	}
+	cArgs, argptr := convertArgs(args)
 	rtn := C.FunctionNewInstance(fn.valuePtr(), C.int(len(args)), argptr)
+	runtime.KeepAlive(cArgs)
 	return objectResult(fn.ctx, rtn)
 }
 
