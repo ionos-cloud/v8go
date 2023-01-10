@@ -4,18 +4,8 @@
 
 #ifndef V8GO_H
 #define V8GO_H
+
 #ifdef __cplusplus
-
-#include "libplatform/libplatform.h"
-#include "v8-profiler.h"
-#include "v8.h"
-
-typedef v8::Isolate* IsolatePtr;
-typedef v8::CpuProfiler* CpuProfilerPtr;
-typedef v8::CpuProfile* CpuProfilePtr;
-typedef const v8::CpuProfileNode* CpuProfileNodePtr;
-typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
-
 extern "C" {
 #else
 // Opaque to cgo, but useful to treat it as a pointer to a distinct type
@@ -33,6 +23,12 @@ typedef const v8CpuProfileNode* CpuProfileNodePtr;
 
 typedef struct v8ScriptCompilerCachedData v8ScriptCompilerCachedData;
 typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
+
+typedef struct WithIsolate* WithIsolatePtr;
+typedef struct V8GoContext* ContextPtr;
+typedef struct V8GoTemplate* TemplatePtr;
+typedef struct V8GoUnboundScript* UnboundScriptPtr;
+
 #endif
 
 #include <stddef.h>
@@ -44,16 +40,6 @@ typedef uint8_t Bool;  // cgo does not like true `bool`
 extern const int ScriptCompilerNoCompileOptions;
 extern const int ScriptCompilerConsumeCodeCache;
 extern const int ScriptCompilerEagerCompile;
-
-typedef struct WithIsolate* WithIsolatePtr;
-
-typedef struct m_ctx m_ctx;
-typedef struct m_template m_template;
-typedef struct m_unboundScript m_unboundScript;
-
-typedef m_ctx* ContextPtr;
-typedef m_template* TemplatePtr;
-typedef m_unboundScript* UnboundScriptPtr;
 
 typedef uint32_t ValueScope;
 typedef uint32_t ValueIndex;
@@ -348,4 +334,5 @@ extern void SetFlags(const char* flags);
 #ifdef __cplusplus
 }  // extern "C"
 #endif
+
 #endif  // V8GO_H
