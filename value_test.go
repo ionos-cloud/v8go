@@ -142,6 +142,7 @@ func TestValueString(t *testing.T) {
 	}{
 		{"Number", `13 * 2`, "26"},
 		{"String", `"string"`, "string"},
+		{"String with latin unicode", `"“Gemütlich”"`, "“Gemütlich”"},
 		{"String with null character and non-latin unicode", `"a\x00Ω"`, "a\x00Ω"},
 		{"Object", `let obj = {}; obj`, "[object Object]"},
 		{"Function", `let fn = function(){}; fn`, "function(){}"},
@@ -812,5 +813,23 @@ func TestValueScopes(t *testing.T) {
 	}
 	if deets := val2.DetailString(); deets != "undefined" {
 		t.Errorf("Unexpected DetailString of obsolete val2; got %q, should be %q", deets, "undefined")
+	}
+}
+
+func BenchmarkV8ToGoString(b *testing.B) {
+	var kTestString = "This is an ASCII string of nontrivial but not excessive length."
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	iso.Lock()
+	defer iso.Unlock()
+
+	v8Str, _ := v8.NewValue(iso, kTestString)
+
+	b.ResetTimer()
+	for i := b.N; i > 0; i-- {
+		goStr := v8Str.String()
+		if goStr != kTestString {
+			b.FailNow()
+		}
 	}
 }

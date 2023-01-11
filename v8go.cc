@@ -6,11 +6,35 @@
 
 namespace v8go {
 
+  static inline bool isAscii(RtnString str) {
+    // Yes, this is faster than testing every char, because it avoids conditional jumps.
+    char merged = 0;
+    for (size_t i = 0; i < str.length; ++i) {
+      merged |= str.data[i];
+    }
+    return (merged & 0x80) == 0;
+  }
+
   RtnString CopyString(Isolate *iso, Local<String> str) {
-    int len = str->Utf8Length(iso);
-    char* mem = (char*)malloc(len + 1);
-    str->WriteUtf8(iso, mem);
-    return {mem, len};
+    // Note: This is performance-sensitive, since it's how V8 strings get returned to Go.
+    RtnString result;
+    if (str->IsOneByte()) {
+      // String is known to be ISO-8859-1 compatible; assume it's ASCII and copy it:
+      result.length = str->Length();
+      result.data = (char*)malloc(result.length + 1);
+      str->WriteOneByte(iso, (uint8_t*)result.data);
+      if (isAscii(result)) {
+        return result;
+      }
+      // Oops, it's not ASCII. Start over...
+      free((char*)result.data);
+    }
+
+    // General case; do the slower UTF-8 conversion:
+    result.length = str->Utf8Length(iso);
+    result.data = (char*)malloc(result.length + 1);
+    str->WriteUtf8(iso, (char*)result.data);
+    return result;
   }
 
   RtnString CopyString(Isolate *iso, Local<Value> val) {
