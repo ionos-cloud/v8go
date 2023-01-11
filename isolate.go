@@ -26,20 +26,22 @@ var v8once sync.Once
 // garbage collector. Most applications will create one isolate
 // with many V8 contexts for execution.
 type Isolate struct {
-	ptr             C.IsolatePtr
-	internalContext *Context
+	ptr             C.IsolatePtr // V8 Isolate*
+	internalContext *Context     // Default Context
 
-	v8Lock  C.WithIsolatePtr
-	v8Mutex sync.Mutex
+	v8Mutex sync.Mutex       // Mutex for Lock() and Unlock() methods
+	v8Lock  C.WithIsolatePtr // Holds native lock state between Lock() and Unlock()
 
-	cbMutex sync.RWMutex
-	cbSeq   int
-	cbs     map[int]FunctionCallback
+	cbMutex sync.RWMutex             // Mutex for accessing `cbs`
+	cbSeq   int                      // Latest ID assigned to a callback
+	cbs     map[int]FunctionCallback // Array of registered callbacks
 
-	null      *Value
-	undefined *Value
-	falseVal  *Value
-	trueVal   *Value
+	stringBuffer []byte // Temporary scratch space for cgo to copy strings to
+
+	null      *Value // Cached Value of `null`
+	undefined *Value // Cached Value of `undefined`
+	falseVal  *Value // Cached Value of `false`
+	trueVal   *Value // Cached Value of `true`
 }
 
 // HeapStatistics represents V8 isolate heap statistics
@@ -57,6 +59,8 @@ type HeapStatistics struct {
 	NumberOfDetachedContexts uint64
 }
 
+const kIsolateStringBufferSize = 1024
+
 // NewIsolate creates a new V8 isolate. Only one thread may access
 // a given isolate at a time, but different threads may access
 // different isolates simultaneously.
@@ -70,8 +74,9 @@ func NewIsolate() *Isolate {
 	})
 	result := C.NewIsolate()
 	iso := &Isolate{
-		ptr: result.isolate,
-		cbs: make(map[int]FunctionCallback),
+		ptr:          result.isolate,
+		cbs:          make(map[int]FunctionCallback),
+		stringBuffer: make([]byte, kIsolateStringBufferSize),
 	}
 	iso.internalContext = &Context{
 		ptr: result.internalContext,

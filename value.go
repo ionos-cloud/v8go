@@ -292,9 +292,18 @@ func (v *Value) Object() *Object {
 // are returned as-is, objects will return `[object Object]` and functions will
 // print their definition.
 func (v *Value) String() string {
-	s := C.ValueToString(v.valuePtr())
-	defer C.free(unsafe.Pointer(s.data))
-	return C.GoStringN(s.data, C.int(s.length))
+	// It's OK to use the Isolate's shared buffer because we already require that client code can
+	// only access an Isolate, and Values derived from it, on a single goroutine at a time.
+	buffer := v.ctx.iso.stringBuffer
+	bufPtr := unsafe.Pointer(&buffer[0])
+	s := C.ValueToString(v.valuePtr(), bufPtr, C.int(len(buffer)))
+	if unsafe.Pointer(s.data) == bufPtr {
+		return string(buffer[0:s.length])
+	} else {
+		// Result was too big for buffer, so the C++ code malloc-ed its own
+		defer C.free(unsafe.Pointer(s.data))
+		return C.GoStringN(s.data, C.int(s.length))
+	}
 }
 
 // Uint32 perform the equivalent of `Number(value)` in JS and convert the result to an

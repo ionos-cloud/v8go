@@ -49,7 +49,8 @@ namespace v8go {
 
   /********** Utility Functions **********/
 
-  RtnString CopyString(Isolate *iso, Local<String> str);
+  RtnString CopyString(Isolate *iso, Local<String> str,
+                       char *buffer = nullptr, size_t bufferSize = 0);
 
   RtnString CopyString(Isolate *iso, Local<Value> val);
 

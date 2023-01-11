@@ -15,24 +15,34 @@ namespace v8go {
     return (merged & 0x80) == 0;
   }
 
-  RtnString CopyString(Isolate *iso, Local<String> str) {
+  RtnString CopyString(Isolate *iso, Local<String> str, char *buffer, size_t bufferSize) {
     // Note: This is performance-sensitive, since it's how V8 strings get returned to Go.
     RtnString result;
     if (str->IsOneByte()) {
       // String is known to be ISO-8859-1 compatible; assume it's ASCII and copy it:
+      void *alloced = nullptr;
       result.length = str->Length();
-      result.data = (char*)malloc(result.length + 1);
+      if (result.length < bufferSize) {
+        result.data = buffer;
+      } else {
+        alloced = malloc(result.length + 1);
+        result.data = (char*)alloced;
+      }
       str->WriteOneByte(iso, (uint8_t*)result.data);
       if (isAscii(result)) {
         return result;
       }
       // Oops, it's not ASCII. Start over...
-      free((char*)result.data);
+      free(alloced);
     }
 
     // General case; do the slower UTF-8 conversion:
     result.length = str->Utf8Length(iso);
-    result.data = (char*)malloc(result.length + 1);
+    if (result.length < bufferSize) {
+      result.data = buffer;
+    } else {
+      result.data = (char*)malloc(result.length + 1);
+    }
     str->WriteUtf8(iso, (char*)result.data);
     return result;
   }

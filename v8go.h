@@ -196,7 +196,7 @@ extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source, int sourceLen,
                           const char* origin, int originLen);
 extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str, int len);
-const char* JSONStringify(ValuePtr);
+extern RtnString JSONStringify(ValuePtr, void *buffer, int bufferSize);
 extern ValueRef ContextGlobal(ContextPtr ctx_ptr);
 
 extern void TemplateFreeWrapper(TemplatePtr ptr);
@@ -232,7 +232,7 @@ extern RtnValue NewValueBigIntFromWords(ContextPtr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);
-extern RtnString ValueToString(ValuePtr ptr);
+extern RtnString ValueToString(ValuePtr ptr, void *buffer, int bufferSize);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
 int32_t ValueToInt32(ValuePtr ptr);

@@ -165,14 +165,16 @@ RtnValue JSONParse(ContextPtr ctx, const char* str, int len) {
   return rtn;
 }
 
-const char* JSONStringify(ValuePtr val) {
+RtnString JSONStringify(ValuePtr val, void *buffer, int bufferSize) {
   WithValue _with(val);
 
   Local<String> str;
   if (!JSON::Stringify(_with.local_ctx, _with.value).ToLocal(&str)) {
-    return nullptr;
+    RtnString result = {};
+    result.error = _with.exceptionError();
+    return result;
   }
-  return CopyString(_with.iso, str).data;
+  return CopyString(_with.iso(), str, (char*)buffer, bufferSize);
 }
 
 /********** ValueScope **********/

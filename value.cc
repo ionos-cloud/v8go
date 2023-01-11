@@ -108,7 +108,7 @@ RtnString ValueToDetailString(ValuePtr ptr) {
   return CopyString(_with.iso, str);
 }
 
-RtnString ValueToString(ValuePtr ptr) {
+RtnString ValueToString(ValuePtr ptr, void *buffer, int bufferSize) {
   WithValue _with(ptr);
   RtnString rtn = {0};
   Local<String> str;
@@ -116,7 +116,7 @@ RtnString ValueToString(ValuePtr ptr) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  return CopyString(_with.iso, str);
+  return CopyString(_with.iso(), str, (char*)buffer, bufferSize);
 }
 
 uint32_t ValueToUint32(ValuePtr ptr) {
