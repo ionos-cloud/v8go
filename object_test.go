@@ -61,6 +61,23 @@ func TestObjectSet(t *testing.T) {
 		t.Errorf("unexpected value: %q", baz)
 	}
 
+	// Test using *Value as key:
+	wowKey, _ := ctx.NewValue("wow")
+	if err := obj.SetKey(wowKey, "such OOP"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if result, err := obj.GetKey(wowKey); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	} else if resultStr := result.String(); resultStr != "such OOP" {
+		t.Errorf("unexpected value: %q", resultStr)
+	}
+	if !obj.HasKey(wowKey) {
+		t.Errorf("Unexpected false from HasKey")
+	}
+	if err := obj.SetKey(v8.Null(ctx.Isolate()), 1234); err == nil {
+		t.Errorf("expected error calling SetKey with non-string key, but got none")
+	}
+
 	if err := obj.Set("", "zero"); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

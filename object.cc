@@ -19,15 +19,75 @@ Local<Object> const obj;
 
 void ObjectSet(ValuePtr ptr, const char* key, int keyLen, ValuePtr prop_val) {
   WithObject _with(ptr);
-  Local<String> key_val =
-      String::NewFromUtf8(_with.iso, key, NewStringType::kNormal, keyLen).ToLocalChecked();
+  Local<String> key_val = _with.makeString(key, NewStringType::kInternalized, keyLen);
   _with.obj->Set(_with.local_ctx, key_val, Deref(prop_val)).Check();
+}
+
+int ObjectSetKey(ValuePtr ptr, ValuePtr key_val, ValuePtr prop_val) {
+  WithObject _with(ptr);
+  Local<Value> key = Deref(key_val);
+  return key->IsName()
+      && _with.obj->Set(_with.local_ctx, key, Deref(prop_val)).ToChecked();
 }
 
 void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   WithObject _with(ptr);
   _with.obj->Set(_with.local_ctx, idx, Deref(prop_val)).Check();
 }
+
+
+RtnValue ObjectGet(ValuePtr ptr, const char* key, int keyLen) {
+  WithObject _with(ptr);
+  Local<String> key_val = _with.makeString(key, NewStringType::kInternalized, keyLen);
+  return _with.returnValue(_with.obj->Get(_with.local_ctx, key_val));
+}
+
+RtnValue ObjectGetKey(ValuePtr ptr, ValuePtr key) {
+  WithObject _with(ptr);
+  return _with.returnValue(_with.obj->Get(_with.local_ctx, Deref(key)));
+}
+
+RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
+  WithObject _with(ptr);
+  return _with.returnValue(_with.obj->Get(_with.local_ctx, idx));
+}
+
+
+int ObjectHas(ValuePtr ptr, const char* key, int keyLen) {
+  WithObject _with(ptr);
+  Local<String> key_val = _with.makeString(key, NewStringType::kInternalized, keyLen);
+  return _with.obj->Has(_with.local_ctx, key_val).ToChecked();
+}
+
+int ObjectHasKey(ValuePtr ptr, ValuePtr key_val) {
+  WithObject _with(ptr);
+  return _with.obj->Has(_with.local_ctx, Deref(key_val)).ToChecked();
+}
+
+int ObjectHasIdx(ValuePtr ptr, uint32_t idx) {
+  WithObject _with(ptr);
+  return _with.obj->Has(_with.local_ctx, idx).ToChecked();
+}
+
+
+int ObjectDelete(ValuePtr ptr, const char* key, int keyLen) {
+  WithObject _with(ptr);
+  Local<String> key_val = _with.makeString(key, NewStringType::kInternalized, keyLen);
+  return _with.obj->Delete(_with.local_ctx, key_val).ToChecked();
+}
+
+int ObjectDeleteKey(ValuePtr ptr, ValuePtr key_val) {
+  WithObject _with(ptr);
+  return _with.obj->Delete(_with.local_ctx, Deref(key_val)).ToChecked();
+}
+
+int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
+  WithObject _with(ptr);
+  return _with.obj->Delete(_with.local_ctx, idx).ToChecked();
+}
+
+
+/********** Object Internal Fields **********/
 
 int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr) {
   WithObject _with(ptr);
@@ -39,30 +99,6 @@ int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr) {
   _with.obj->SetInternalField(idx, Deref(val_ptr));
 
   return 1;
-}
-
-int ObjectInternalFieldCount(ValuePtr ptr) {
-  WithObject _with(ptr);
-  return _with.obj->InternalFieldCount();
-}
-
-RtnValue ObjectGet(ValuePtr ptr, const char* key, int keyLen) {
-  WithObject _with(ptr);
-  RtnValue rtn = {};
-
-  Local<String> key_val;
-  if (!String::NewFromUtf8(_with.iso, key, NewStringType::kNormal, keyLen)
-           .ToLocal(&key_val)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  Local<Value> result;
-  if (!_with.obj->Get(_with.local_ctx, key_val).ToLocal(&result)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ptr.ctx->addValue(result);
-  return rtn;
 }
 
 ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
@@ -77,41 +113,9 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
   return {ptr.ctx, ptr.ctx->addValue(result)};
 }
 
-RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
+int ObjectInternalFieldCount(ValuePtr ptr) {
   WithObject _with(ptr);
-  RtnValue rtn = {};
-
-  Local<Value> result;
-  if (!_with.obj->Get(_with.local_ctx, idx).ToLocal(&result)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ptr.ctx->addValue(result);
-  return rtn;
-}
-
-int ObjectHas(ValuePtr ptr, const char* key, int keyLen) {
-  WithObject _with(ptr);
-  Local<String> key_val =
-      String::NewFromUtf8(_with.iso, key, NewStringType::kNormal, keyLen).ToLocalChecked();
-  return _with.obj->Has(_with.local_ctx, key_val).ToChecked();
-}
-
-int ObjectHasIdx(ValuePtr ptr, uint32_t idx) {
-  WithObject _with(ptr);
-  return _with.obj->Has(_with.local_ctx, idx).ToChecked();
-}
-
-int ObjectDelete(ValuePtr ptr, const char* key, int keyLen) {
-  WithObject _with(ptr);
-  Local<String> key_val =
-      String::NewFromUtf8(_with.iso, key, NewStringType::kNormal, keyLen).ToLocalChecked();
-  return _with.obj->Delete(_with.local_ctx, key_val).ToChecked();
-}
-
-int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
-  WithObject _with(ptr);
-  return _with.obj->Delete(_with.local_ctx, idx).ToChecked();
+  return _with.obj->InternalFieldCount();
 }
 
 

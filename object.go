@@ -26,6 +26,7 @@ type Object struct {
 	*Value
 }
 
+// Calls an object property, whose value must be a function.
 func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
 	getRtn := C.ObjectGetGo(o.valuePtr(), methodName)
 	prop, err := valueResult(o.ctx, getRtn)
@@ -53,10 +54,21 @@ func (o *Object) Set(key string, val interface{}) error {
 	return nil
 }
 
-// Set will set a given index on the Object to a given value.
-// Supports all value types, eg: Object, Array, Date, Set, Map etc
-// If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
-// then a *Value will be created and set as the value property.
+// SetKey is like Set except that the key is passed as a Value (which must be a string.)
+// This is slightly faster since V8 does not have to create a new String object.
+func (o *Object) SetKey(key *Value, val interface{}) error {
+	value, err := o.ctx.NewValue(val)
+	if err != nil {
+		return err
+	}
+	if C.ObjectSetKey(o.valuePtr(), key.valuePtr(), value.valuePtr()) == 0 {
+		return fmt.Errorf("invalid key")
+	}
+	return nil
+}
+
+// SetIdx will set a given index on the Object to a given value.
+// The value may be a Value, an Object, or any Go type that can be passed to NewValue.
 func (o *Object) SetIdx(idx uint32, val interface{}) error {
 	value, err := o.ctx.NewValue(val)
 	if err != nil {
@@ -98,6 +110,13 @@ func (o *Object) Get(key string) (*Value, error) {
 	return valueResult(o.ctx, rtn)
 }
 
+// GetKey is like Get except that the key is passed as a Value (which must be a string.)
+// This is slightly faster since V8 does not have to create a new String object.
+func (o *Object) GetKey(key *Value) (*Value, error) {
+	rtn := C.ObjectGetKey(o.valuePtr(), key.valuePtr())
+	return valueResult(o.ctx, rtn)
+}
+
 // GetInternalField gets the Value set by SetInternalField for the given index
 // or the JS undefined value if the index hadn't been set.
 // Panics if given an out of range index.
@@ -107,10 +126,9 @@ func (o *Object) GetInternalField(idx uint32) *Value {
 		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
 	}
 	return &Value{rtn.ref, o.ctx}
-
 }
 
-// GetIdx tries to get a Value at a give Object index.
+// GetIdx tries to get a Value at a given Object index.
 func (o *Object) GetIdx(idx uint32) (*Value, error) {
 	rtn := C.ObjectGetIdx(o.valuePtr(), C.uint32_t(idx))
 	return valueResult(o.ctx, rtn)
@@ -122,6 +140,12 @@ func (o *Object) Has(key string) bool {
 	return C.ObjectHasGo(o.valuePtr(), key) != 0
 }
 
+// HasKey is like Has except that the key is passed as a Value (which must be a string.)
+// This is slightly faster since V8 does not have to create a new String object.
+func (o *Object) HasKey(key *Value) bool {
+	return C.ObjectHasKey(o.valuePtr(), key.valuePtr()) != 0
+}
+
 // HasIdx returns true if the object has a value at the given index.
 func (o *Object) HasIdx(idx uint32) bool {
 	return C.ObjectHasIdx(o.valuePtr(), C.uint32_t(idx)) != 0
@@ -130,6 +154,12 @@ func (o *Object) HasIdx(idx uint32) bool {
 // Delete returns true if successful in deleting a named property on the object.
 func (o *Object) Delete(key string) bool {
 	return C.ObjectDeleteGo(o.valuePtr(), key) != 0
+}
+
+// DeleteKey is like Delete except that the key is passed as a Value (which must be a string.)
+// This is slightly faster since V8 does not have to create a new String object.
+func (o *Object) DeleteKey(key *Value) bool {
+	return C.ObjectDeleteKey(o.valuePtr(), key.valuePtr()) != 0
 }
 
 // DeleteIdx returns true if successful in deleting a value at a given index of the object.
