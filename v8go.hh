@@ -137,18 +137,41 @@ namespace v8go {
   struct WithContext : public WithIsolate {
     WithContext(V8GoContext *ctx)
     :WithIsolate(ctx->iso)
-    ,iso(ctx->iso)
+    ,ctx(ctx)
     ,try_catch(ctx->iso)
     ,local_ctx(ctx->context())
     ,context_scope(local_ctx)
     { }
 
-    RtnError exceptionError() {return ExceptionError(try_catch, iso, local_ctx);}
+    Isolate*  iso() {return ctx->iso;}
 
-    Isolate* const  iso;
-    TryCatch        try_catch;
-    Local<Context>  local_ctx;
-    Context::Scope  context_scope;
+    Local<String> makeString(const char *cstr,
+                             NewStringType type = NewStringType::kNormal,
+                             int keyLen = -1) {
+      return String::NewFromUtf8(iso(), cstr, type, keyLen).ToLocalChecked();
+    }
+
+    RtnError exceptionError() {return ExceptionError(try_catch, iso(), local_ctx);}
+
+    ValueRef returnValue(Local<Value> result)   {return ctx->addValue(result);}
+
+    // Common code to return a RtnValue to Go given a MaybeLocal.
+    template <typename T>
+    RtnValue returnValue(MaybeLocal<T> maybeVal) {
+      RtnValue rtn = {};
+      Local<T> result;
+      if (maybeVal.ToLocal(&result)) {
+        rtn.value = ctx->addValue(result);
+      } else {
+        rtn.error = exceptionError();
+      }
+      return rtn;
+    }
+
+    V8GoContext* const  ctx;
+    TryCatch            try_catch;
+    Local<Context>      local_ctx;
+    Context::Scope      context_scope;
   };
 
 

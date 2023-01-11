@@ -135,13 +135,7 @@ RtnValue RunScript(ContextPtr ctx, const char* source, int sourceLen,
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  Local<Value> result;
-  if (!script->Run(_with.local_ctx).ToLocal(&result)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ctx->addValue(result);
-  return rtn;
+  return _with.returnValue(script->Run(_with.local_ctx));
 }
 
 /********** JSON **********/
@@ -151,18 +145,12 @@ RtnValue JSONParse(ContextPtr ctx, const char* str, int len) {
   RtnValue rtn = {};
 
   Local<String> v8Str;
-  if (!String::NewFromUtf8(_with.iso, str, NewStringType::kNormal, len).ToLocal(&v8Str)) {
+  if (!String::NewFromUtf8(_with.iso(), str, NewStringType::kNormal, len).ToLocal(&v8Str)) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
 
-  Local<Value> result;
-  if (!JSON::Parse(_with.local_ctx, v8Str).ToLocal(&result)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ctx->addValue(result);
-  return rtn;
+  return _with.returnValue(JSON::Parse(_with.local_ctx, v8Str));
 }
 
 RtnString JSONStringify(ValuePtr val, void *buffer, int bufferSize) {

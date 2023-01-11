@@ -19,15 +19,7 @@ ValueRef NewValueIntegerFromUnsigned(ContextPtr ctx, uint32_t v) {
 
 RtnValue NewValueString(ContextPtr ctx, const char* v, int v_length) {
   WithContext _with(ctx);
-  RtnValue rtn = {};
-  Local<String> str;
-  if (!String::NewFromUtf8(_with.iso, v, NewStringType::kNormal, v_length)
-           .ToLocal(&str)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ctx->addValue(str);
-  return rtn;
+  return _with.returnValue(String::NewFromUtf8(_with.iso(), v, NewStringType::kNormal, v_length));
 }
 
 ValueRef NewValueNumber(ContextPtr ctx, double v) {
@@ -50,16 +42,7 @@ RtnValue NewValueBigIntFromWords(ContextPtr ctx,
                                  int word_count,
                                  const uint64_t* words) {
   WithContext _with(ctx);
-
-  RtnValue rtn = {};
-  Local<BigInt> bigint;
-  if (!BigInt::NewFromWords(_with.local_ctx, sign_bit, word_count, words)
-           .ToLocal(&bigint)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ctx->addValue(bigint);
-  return rtn;
+  return _with.returnValue(BigInt::NewFromWords(_with.local_ctx, sign_bit, word_count, words));
 }
 
 
@@ -79,7 +62,7 @@ const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
 
 int ValueToBoolean(ValuePtr ptr) {
   WithValue _with(ptr);
-  return _with.value->BooleanValue(_with.iso);
+  return _with.value->BooleanValue(_with.iso());
 }
 
 int32_t ValueToInt32(ValuePtr ptr) {
@@ -105,7 +88,7 @@ RtnString ValueToDetailString(ValuePtr ptr) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  return CopyString(_with.iso, str);
+  return CopyString(_with.iso(), str);
 }
 
 RtnString ValueToString(ValuePtr ptr, void *buffer, int bufferSize) {
@@ -141,14 +124,7 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
 
 RtnValue ValueToObject(ValuePtr ptr) {
   WithValue _with(ptr);
-  RtnValue rtn = {};
-  Local<Object> obj;
-  if (!_with.value->ToObject(_with.local_ctx).ToLocal(&obj)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ptr.ctx->addValue(obj);
-  return rtn;
+  return _with.returnValue(_with.value->ToObject(_with.local_ctx));
 }
 
 

@@ -59,18 +59,9 @@ TemplatePtr NewObjectTemplate(IsolatePtr iso) {
 
 RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   WithContext _with(ctx);
-  Local<Template> tmpl(ptr->ptr.Get(_with.iso));
+  Local<Template> tmpl(ptr->ptr.Get(_with.iso()));
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
-
-  RtnValue rtn = {};
-  Local<Object> obj;
-  if (!obj_tmpl->NewInstance(_with.local_ctx).ToLocal(&obj)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-
-  rtn.value = ctx->addValue(obj);
-  return rtn;
+  return _with.returnValue(obj_tmpl->NewInstance(_with.local_ctx));
 }
 
 void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, int field_count) {
@@ -139,16 +130,8 @@ TemplatePtr NewFunctionTemplate(IsolatePtr iso, int callback_ref) {
 
 RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   WithContext _with(ctx);
-  Local<Template> tmpl(ptr->ptr.Get(_with.iso));
+  Local<Template> tmpl(ptr->ptr.Get(_with.iso()));
 
   Local<FunctionTemplate> fn_tmpl = tmpl.As<FunctionTemplate>();
-  RtnValue rtn = {};
-  Local<Function> fn;
-  if (!fn_tmpl->GetFunction(_with.local_ctx).ToLocal(&fn)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-
-  rtn.value = ctx->addValue(fn);
-  return rtn;
+  return _with.returnValue(fn_tmpl->GetFunction(_with.local_ctx));
 }

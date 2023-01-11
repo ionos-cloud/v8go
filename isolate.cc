@@ -181,7 +181,7 @@ RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
 
   RtnValue rtn = {};
 
-  Local<UnboundScript> unbound_script = us_ptr->ptr.Get(_with.iso);
+  Local<UnboundScript> unbound_script = us_ptr->ptr.Get(_with.iso());
 
   Local<Script> script = unbound_script->BindToCurrentContext();
   Local<Value> result;

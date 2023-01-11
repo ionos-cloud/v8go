@@ -119,21 +119,14 @@ int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
 
 RtnValue NewPromiseResolver(ContextPtr ctx) {
   WithContext _with(ctx);
-  RtnValue rtn = {};
-  Local<Promise::Resolver> resolver;
-  if (!Promise::Resolver::New(_with.local_ctx).ToLocal(&resolver)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ctx->addValue(resolver);
-  return rtn;
+  return _with.returnValue(Promise::Resolver::New(_with.local_ctx));
 }
 
 ValueRef PromiseResolverGetPromise(ValuePtr ptr) {
   WithValue _with(ptr);
   Local<Promise::Resolver> resolver = _with.value.As<Promise::Resolver>();
   Local<Promise> promise = resolver->GetPromise();
-  return ptr.ctx->addValue(promise);
+  return _with.returnValue(promise);
 }
 
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr resolve_val) {
@@ -158,75 +151,55 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
   WithValue _with(ptr);
   RtnValue rtn = {};
   Local<Promise> promise = _with.value.As<Promise>();
-  Local<Integer> cbData = Integer::New(_with.iso, callback_ref);
+  Local<Integer> cbData = Integer::New(_with.iso(), callback_ref);
   Local<Function> func;
   if (!Function::New(_with.local_ctx, FunctionTemplateCallback, cbData)
            .ToLocal(&func)) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  Local<Promise> result;
-  if (!promise->Then(_with.local_ctx, func).ToLocal(&result)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ptr.ctx->addValue(result);
-  return rtn;
+  return _with.returnValue(promise->Then(_with.local_ctx, func));
 }
 
 RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
   WithValue _with(ptr);
   RtnValue rtn = {};
   Local<Promise> promise = _with.value.As<Promise>();
-  Local<Integer> onFulfilledData = Integer::New(_with.iso, on_fulfilled_ref);
+  Local<Integer> onFulfilledData = Integer::New(_with.iso(), on_fulfilled_ref);
   Local<Function> onFulfilledFunc;
   if (!Function::New(_with.local_ctx, FunctionTemplateCallback, onFulfilledData)
            .ToLocal(&onFulfilledFunc)) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  Local<Integer> onRejectedData = Integer::New(_with.iso, on_rejected_ref);
+  Local<Integer> onRejectedData = Integer::New(_with.iso(), on_rejected_ref);
   Local<Function> onRejectedFunc;
   if (!Function::New(_with.local_ctx, FunctionTemplateCallback, onRejectedData)
            .ToLocal(&onRejectedFunc)) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  Local<Promise> result;
-  if (!promise->Then(_with.local_ctx, onFulfilledFunc, onRejectedFunc)
-           .ToLocal(&result)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ptr.ctx->addValue(result);
-  return rtn;
+  return _with.returnValue(promise->Then(_with.local_ctx, onFulfilledFunc, onRejectedFunc));
 }
 
 RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
   WithValue _with(ptr);
   RtnValue rtn = {};
   Local<Promise> promise = _with.value.As<Promise>();
-  Local<Integer> cbData = Integer::New(_with.iso, callback_ref);
+  Local<Integer> cbData = Integer::New(_with.iso(), callback_ref);
   Local<Function> func;
   if (!Function::New(_with.local_ctx, FunctionTemplateCallback, cbData)
            .ToLocal(&func)) {
     rtn.error = _with.exceptionError();
     return rtn;
   }
-  Local<Promise> result;
-  if (!promise->Catch(_with.local_ctx, func).ToLocal(&result)) {
-    rtn.error = _with.exceptionError();
-    return rtn;
-  }
-  rtn.value = ptr.ctx->addValue(result);
-  return rtn;
+  return _with.returnValue(promise->Catch(_with.local_ctx, func));
 }
 
 ValueRef PromiseResult(ValuePtr ptr) {
   WithValue _with(ptr);
   Local<Promise> promise = _with.value.As<Promise>();
-  Local<Value> result = promise->Result();
-  return ptr.ctx->addValue(result);
+  return _with.returnValue(promise->Result());
 }
 
 
@@ -247,7 +220,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   RtnValue rtn = {};
   Local<Function> fn = Local<Function>::Cast(_with.value);
   Local<Value> argv[argc];
-  buildCallArguments(_with.iso, argv, argc, args);
+  buildCallArguments(_with.iso(), argv, argc, args);
 
   Local<Value> local_recv = Deref(recv);
 
@@ -265,7 +238,7 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   RtnValue rtn = {};
   Local<Function> fn = Local<Function>::Cast(_with.value);
   Local<Value> argv[argc];
-  buildCallArguments(_with.iso, argv, argc, args);
+  buildCallArguments(_with.iso(), argv, argc, args);
   Local<Object> result;
   if (!fn->NewInstance(_with.local_ctx, argc, argv).ToLocal(&result)) {
     rtn.error = _with.exceptionError();
