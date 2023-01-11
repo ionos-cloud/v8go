@@ -17,7 +17,7 @@ import (
 
 // Version returns the version of the V8 Engine with the -v8go suffix
 func Version() string {
-	return C.GoString(C.Version())
+	return C.GoString(C.V8Version())
 }
 
 // SetFlags sets flags for V8. For possible flags: https://github.com/v8/v8/blob/master/src/flags/flag-definitions.h
@@ -26,6 +26,6 @@ func Version() string {
 // Flags will affect all Isolates created, even after creation.
 func SetFlags(flags ...string) {
 	cflags := C.CString(strings.Join(flags, " "))
-	C.SetFlags(cflags)
+	C.SetV8Flags(cflags)
 	C.free(unsafe.Pointer(cflags))
 }

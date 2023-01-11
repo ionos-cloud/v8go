@@ -101,10 +101,10 @@ namespace v8go {
 
 /********** v8::V8 **********/
 
-const char* Version() {
+const char* V8Version() {
   return V8::GetVersion();
 }
 
-void SetFlags(const char* flags) {
+void SetV8Flags(const char* flags) {
   V8::SetFlagsFromString(flags);
 }

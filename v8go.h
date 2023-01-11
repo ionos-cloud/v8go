@@ -328,8 +328,8 @@ extern RtnValue FunctionCall(ValuePtr ptr,
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValueRef FunctionSourceMapUrl(ValuePtr ptr);
 
-const char* Version();
-extern void SetFlags(const char* flags);
+const char* V8Version();
+extern void SetV8Flags(const char* flags);
 
 #ifdef __cplusplus
 }  // extern "C"
