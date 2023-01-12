@@ -113,6 +113,8 @@ func (c *Context) NewValue(val interface{}) (*Value, error) {
 		return v, nil
 	case *Object:
 		return v.Value, nil
+	case *Array:
+		return v.Value, nil
 	default:
 		err = fmt.Errorf("v8go: unsupported value type `%T`", v)
 	}
@@ -635,6 +637,16 @@ func (v *Value) AsObject() (*Object, error) {
 	}
 
 	return &Object{v}, nil
+}
+
+// AsArray will cast the value to the Array type. If the value is not an Array
+// then an error is returned.
+func (v *Value) AsArray() (*Array, error) {
+	if !v.IsArray() {
+		return nil, errors.New("v8go: value is not an Array")
+	}
+
+	return &Array{Object{v}}, nil
 }
 
 func (v *Value) AsPromise() (*Promise, error) {

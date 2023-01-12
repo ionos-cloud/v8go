@@ -17,6 +17,11 @@ Local<Object> const obj;
 
 /********** Object **********/
 
+ValueRef NewObject(ContextPtr ctx) {
+  WithContext _with(ctx);
+  return _with.returnValue(Object::New(_with.iso()));
+}
+
 void ObjectSet(ValuePtr ptr, const char* key, int keyLen, ValuePtr prop_val) {
   WithObject _with(ptr);
   Local<String> key_val = _with.makeString(key, NewStringType::kInternalized, keyLen);
@@ -257,4 +262,20 @@ ValueRef FunctionSourceMapUrl(ValuePtr ptr) {
   Local<Function> fn = Local<Function>::Cast(_with.value);
   Local<Value> result = fn->GetScriptOrigin().SourceMapUrl();
   return ptr.ctx->addValue(result);
+}
+
+/********** Array **********/
+
+extern ValueRef NewArray(ContextPtr ctx, uint32_t length) {
+  WithContext _with(ctx);
+  return _with.returnValue(Array::New(_with.iso(), length));
+}
+
+uint32_t ArrayLength(ValuePtr ptr) {
+  WithObject _with(ptr);
+  if (_with.obj->IsArray()) {
+    return _with.obj.As<Array>()->Length();
+  } else {
+    return 0;
+  }
 }

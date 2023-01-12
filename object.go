@@ -26,6 +26,14 @@ type Object struct {
 	*Value
 }
 
+func NewObject(iso *Isolate) *Object {
+	return iso.internalContext.NewObject()
+}
+
+func (c *Context) NewObject() *Object {
+	return &Object{Value: &Value{ctx: c, ref: C.NewObject(c.ptr)}}
+}
+
 // Calls an object property, whose value must be a function.
 func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
 	getRtn := C.ObjectGetGo(o.valuePtr(), methodName)

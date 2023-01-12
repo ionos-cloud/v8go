@@ -299,6 +299,7 @@ int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
 int /*ValueType*/ ValueGetType(ValuePtr ptr);
 
+extern ValueRef NewObject(ContextPtr);
 extern void ObjectSet(ValuePtr obj, const char* key, int keyLen, ValuePtr val_ptr);
 extern int ObjectSetKey(ValuePtr obj, ValuePtr key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr obj, uint32_t idx, ValuePtr val_ptr);
@@ -314,6 +315,9 @@ extern int ObjectHasIdx(ValuePtr obj, uint32_t idx);
 extern int ObjectDelete(ValuePtr obj, const char* key, int keyLen);
 extern int ObjectDeleteKey(ValuePtr obj, ValuePtr key);
 extern int ObjectDeleteIdx(ValuePtr obj, uint32_t idx);
+
+extern ValueRef NewArray(ContextPtr, uint32_t length);
+extern uint32_t ArrayLength(ValuePtr ptr);
 
 extern RtnValue NewPromiseResolver(ContextPtr ctx_ptr);
 extern ValueRef PromiseResolverGetPromise(ValuePtr ptr);
