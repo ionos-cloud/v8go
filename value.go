@@ -116,7 +116,7 @@ func (c *Context) NewValue(val interface{}) (*Value, error) {
 	case *Array:
 		return v.Value, nil
 	default:
-		err = fmt.Errorf("v8go: unsupported value type `%T`", v)
+		err = ErrUnsupportedValueType
 	}
 
 	if err != nil {
@@ -124,6 +124,8 @@ func (c *Context) NewValue(val interface{}) (*Value, error) {
 	}
 	return &Value{ref, c}, nil
 }
+
+var ErrUnsupportedValueType = fmt.Errorf("v8go: unsupported value type")
 
 const kMaxFloat64SafeInt = 1<<53 - 1
 const kMinFloat64SafeInt = -kMaxFloat64SafeInt
