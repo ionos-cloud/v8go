@@ -159,7 +159,7 @@ typedef struct {
 } NewIsolateResult;
 
 extern void Init();
-extern NewIsolateResult NewIsolate();
+extern NewIsolateResult NewIsolate(size_t initialHeap, size_t heapLimit);
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern WithIsolatePtr IsolateLock(IsolatePtr);

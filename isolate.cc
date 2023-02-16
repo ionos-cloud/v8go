@@ -7,6 +7,9 @@
 
 /********** Isolate **********/
 
+static constexpr size_t MB = 1024 * 1024;
+static constexpr size_t kGrowHeapBy  =  1 * MB; // Amount to grow by on every callback
+
 static auto default_platform = platform::NewDefaultPlatform();
 static auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 
@@ -19,13 +22,44 @@ void Init() {
   return;
 }
 
-NewIsolateResult NewIsolate() {
+
+/**
+ * "This callback is invoked when the heap size is close to the heap limit and
+ * V8 is likely to abort with out-of-memory error.
+ * The callback can extend the heap limit by returning a value that is greater
+ * than the current_heap_limit. The initial heap limit is the limit that was
+ * set after heap setup." --V8 docs
+ */
+static size_t nearHeapLimitCallback(void* data, size_t cur, size_t initialLimit) {
+  const size_t maxHeap = initialLimit + 2 * kGrowHeapBy;
+  if (cur < maxHeap) {
+    fprintf(stderr, "***** V8 NEAR HEAP LIMIT: at %zuMB, max %zuMB\n", cur / MB, maxHeap / MB);
+    return std::min(cur + kGrowHeapBy, maxHeap);
+  } else if (cur < maxHeap + kGrowHeapBy) {
+    fprintf(stderr, "***** V8 EXCEEDED HEAP LIMIT of %zuMB; terminating script\n", maxHeap);
+    reinterpret_cast<Isolate*>(data)->TerminateExecution();
+    return cur + kGrowHeapBy;
+  } else {
+    fprintf(stderr, "***** V8 EXCEEDED HEAP LIMIT AND WON'T STOP; aborting\n");
+    return cur; // This will cause V8 to abort the process :(
+  }
+}
+
+
+NewIsolateResult NewIsolate(size_t initialHeap, size_t heapLimit) {
   Isolate::CreateParams params;
+  if (initialHeap > 0 && heapLimit > 0) {
+    params.constraints.ConfigureDefaultsFromHeapSize(initialHeap, heapLimit - 2 * kGrowHeapBy);
+  }
   params.array_buffer_allocator = default_allocator;
   Isolate* iso = Isolate::New(params);
   WithIsolate _with(iso);
 
   iso->SetCaptureStackTraceForUncaughtExceptions(true);
+  if (initialHeap > 0 && heapLimit > 0) {
+    iso->AddNearHeapLimitCallback(nearHeapLimitCallback, iso);
+    iso->AutomaticallyRestoreInitialHeapLimit();
+  }
 
   // Create a Context for internal use
   V8GoContext* ctx = new V8GoContext(iso, Context::New(iso), 0);

@@ -69,10 +69,20 @@ const kIsolateStringBufferSize = 1024
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
 func NewIsolate() *Isolate {
+	return NewIsolateWith(0, 0)
+}
+
+// NewIsolateWith creates a new V8 isolate with control over the
+// initial heap size and the maximum heap size. If the heap overflows
+// the maximum size, the script will be terminated with an
+// ExecutionTerminated exception.
+// The heap sizes are given in bytes. If both are zero, the default
+// heap settings are used.
+func NewIsolateWith(initialHeap uint64, maxHeap uint64) *Isolate {
 	v8once.Do(func() {
 		C.Init()
 	})
-	result := C.NewIsolate()
+	result := C.NewIsolate(C.ulong(initialHeap), C.ulong(maxHeap))
 	iso := &Isolate{
 		ptr:          result.isolate,
 		cbs:          make(map[int]FunctionCallback),
