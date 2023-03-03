@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/snej/v8go"
+	"github.com/ionos-cloud/v8go"
 )
 
 func TestMain(m *testing.M) {

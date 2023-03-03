@@ -1,5 +1,5 @@
-module github.com/snej/v8go
+module github.com/ionos-cloud/v8go
 
 go 1.16
 
-require rogchap.com/v8go v0.8.0 // indirect
+require ionos-cloud/v8go v0.8.0 // indirect

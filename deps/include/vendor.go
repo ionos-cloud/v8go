@@ -3,6 +3,6 @@
 package include
 
 import (
-	_ "rogchap.com/v8go/deps/include/cppgc"
-  _ "rogchap.com/v8go/deps/include/libplatform"
+	_ "ionos-cloud/v8go/deps/include/cppgc"
+	_ "ionos-cloud/v8go/deps/include/libplatform"
 )

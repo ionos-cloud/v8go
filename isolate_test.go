@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	v8 "github.com/snej/v8go"
+	v8 "github.com/ionos-cloud/v8go"
 )
 
 func TestIsolateTerminateExecution(t *testing.T) {
