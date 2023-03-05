@@ -20,13 +20,10 @@ jobs:
     runs-on: ${{ matrix.platform }}
     
     steps:
+    - uses: actions/checkout@v3
     - uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
-    - uses: actions/checkout@v3
-    - env:
-        CGO_CXXFLAGS: "-Werror"
-      run: go test -v -coverprofile c.out ./...
     - run: make test
     # - uses: codecov/codecov-action@v1
     #   env:
