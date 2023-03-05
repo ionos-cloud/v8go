@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="287" failures="0" errors="0" time="3.839385">
-	<testsuite tests="287" failures="0" time="2.194000" name="github.com/ionos-cloud/v8go" timestamp="2023-03-05T18:39:09+01:00">
+<testsuites tests="287" failures="0" errors="0" time="9.739266">
+	<testsuite tests="287" failures="0" time="2.270000" name="github.com/ionos-cloud/v8go" timestamp="2023-03-05T19:54:36+01:00">
 		<properties>
 			<property name="go.version" value="go1.20.1 darwin/arm64"></property>
 		</properties>
@@ -9,242 +9,242 @@
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestIsolateCompileUnboundScript_InvalidOptions" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectInternalFields" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestUnboundScriptRun_OnlyInTheSameIsolate" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/0" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/str" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/true" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/i32" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/1" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/u32" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/false" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/-1" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/i64" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/&#39;1&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/0" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/u64" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/1.5" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/float64" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/null" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/-1.5" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(0)" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/&#39;a&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/bigint" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/undefined" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValuePromise" time="0.010000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/[1]" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/biguint" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/&#39;&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/-1n" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/&#39;foo&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCallbackInfoThis" time="0.010000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/[1,1]" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/bigbigint" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Infinity" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/bigbignegint" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Number.MAX_VALUE" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/bool" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Number.MIN_VALUE" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/val" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Number.MAX_SAFE_INTEGER" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Number.NaN" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/new_BigInt(1)" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/()_=&gt;_{}" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/obj" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/{}" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/{foo:&#39;bar&#39;}" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/0" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueSameValue" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(Number.MAX_SAFE_INTEGER)" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/-1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber" time="0.010000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/&#39;1&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/1.5" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/-1.5" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(Number.MIN_SAFE_INTEGER)" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/&#39;a&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/[1]" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/[1,1]" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/Infinity" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/Number.MAX_SAFE_INTEGER" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(Number.MAX_SAFE_INTEGER)_*_2n" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/Number.MIN_SAFE_INTEGER" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate" time="0.010000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/0" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/Number.NaN" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/9_007_199_254_740_991" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/0" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(Number.MAX_SAFE_INTEGER)_*_4096n" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean" time="0.010000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/-9_007_199_254_740_991" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/-1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/9_223_372_036_854_775_810" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/&#39;1&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/-1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/&#39;-1&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/&#39;1&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/&#39;a&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/1.5" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/[1]" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/[&#39;1&#39;]" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/-1.5" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/[1,_1]" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/&#39;a&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString/Number" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt" time="0.010000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/{}" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString/String" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/[1]" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString/Object" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueConstants" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/[1,1]" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString/Function" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/Infinity" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/Number.MAX_SAFE_INTEGER" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/Number.MIN_SAFE_INTEGER" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestNewValue/string" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/Number.NaN" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestNewValue/int32" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/2_147_483_647" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/Number" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/-2_147_483_648" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/String" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestNewValue/bool" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/String_with_null_character_and_non-latin_unicode" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueUint32/0" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/2_147_483_648" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/Object" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/Function" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueUint32/1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueUint32/-1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestNewValue" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueFormatting/new_Object()" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueUint32" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestVersion" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/u64" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/float64" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/bigint" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestPromiseThenPanic/no_callbacks" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestContextRegistry" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/biguint" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestPromiseThenPanic/3_callbacks" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNewBaseCases" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueFormatting" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestSetFlag" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestPromiseThenPanic" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestPromiseRejected" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectDelete" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectHas" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectGet" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate_panic_on_nil_isolate" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestPromiseFulfilled" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/bigbigint" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueFormatting" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/bigbignegint" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate_panic_on_nil_isolate" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/bool" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/val" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate/obj" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestPromiseThenPanic" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectGet" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectSet" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplateNewInstance" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestGlobalObjectTemplate/foo" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestGlobalObjectTemplate/foo.bar" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSONParse" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestVersion" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectMethodCall" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestGlobalObjectTemplate/foo" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplateNewInstance" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestGlobalObjectTemplate/foo.bar" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestPromiseRejected" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestGlobalObjectTemplate" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestIsolateThrowException" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestIsolateDispose" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate_garbageCollection" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestCallbackRegistry" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestIsolateGetHeapStatistics" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSONStringify" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON/primitive" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON/object" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/#00" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON/objectFunc" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestIsolateTerminateExecution" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplate_panic_on_nil_isolate" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplate_panic_on_nil_callback" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplate_generates_values" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON/nil" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestIntlSupport" time="0.020000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSErrorFormat_forSyntaxError" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/let_v;_v" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplate" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/null" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplate_releases_values" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSONParse" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectTemplate_garbageCollection" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestIsolateThrowException" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestIsolateGetHeapStatistics" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestCallbackRegistry" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionNewInstanceError" time="0.010000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCallError" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionNewInstance" time="0.010000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionSourceMapUrl" time="0.010000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCallWithObjectReceiver" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectHas" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCall" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestNewValue/string" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestNewValue/int32" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestNewValue/bool" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplateGetFunction" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestIsolateTerminateExecution" time="0.010000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCallToGoFunc" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNewBaseCases" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestNewValue" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestSetFlag" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplate_generates_values" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplate_panic_on_nil_isolate" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCallbackInfoThis" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplate" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplate_panic_on_nil_callback" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestCPUProfiler_Dispose" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSErrorFormat_forSyntaxError" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSErrorOutput" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestObjectDelete" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueObject" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestCPUProfile_Delete" time="0.010000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON/primitive" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestRegistryFromJSON" time="0.010000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON/object" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON/objectFunc" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON/nil" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueFunction" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/#00" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/let_v;_v" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueMarshalJSON" time="0.010000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/null" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/let_v;_v#01" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueSameValue" time="0.010000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/let_v_=_null;_v" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/true" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/false" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/&#39;name&#39;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionSourceMapUrl" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionNewInstance" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(0)" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Symbol()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/-1n" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/&#34;double_quote&#34;" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionNewInstanceError" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/new_BigInt(1)" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/&#39;single_quote&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(Number.MAX_SAFE_INTEGER)" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/`string_literal`" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueFunction" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(Number.MIN_SAFE_INTEGER)" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestIntlSupport" time="0.030000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Symbol()#01" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(Number.MAX_SAFE_INTEGER)_*_2n" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Symbol(&#39;foo&#39;)" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/()_=&gt;_{}" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCallError" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/function_v()_{};_v" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueUint32/0" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueUint32/1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueUint32/-1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValuePromise" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/const_v_=_function()_{};_v" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt/BigInt(Number.MAX_SAFE_INTEGER)_*_4096n" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/console.log" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/0" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/-1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/&#39;1&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/1.5" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/class_Foo_{};_Foo" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/-1.5" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/&#39;a&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueUint32" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBigInt" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/class_Foo_{_bar()_{}_};_(new_Foo()).bar" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/[1]" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/[1,1]" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/function*_v(){};_v" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/Infinity" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/Number.MAX_SAFE_INTEGER" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/Number.MIN_SAFE_INTEGER" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/0" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/Number.NaN" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/2_147_483_647" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/-2_147_483_648" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32/2_147_483_648" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/async_function_v(){};_v" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/0" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/-1" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/&#39;1&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/1.5" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/-1.5" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/&#39;a&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/-1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/[1]" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInt32" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_Object" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueObject" time="0.010000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/&#39;1&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/1.5" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/var_v_=_{};_v" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/[1,1]" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/10n" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/-1.5" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/Infinity" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/&#39;a&#39;" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/BigInt(1)" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/Number.MAX_SAFE_INTEGER" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/[1]" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/0" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/[1,1]" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/Number.MIN_SAFE_INTEGER" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/true#01" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/-1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Infinity" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/Number.NaN" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/&#39;1&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/9_007_199_254_740_991" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/-9_007_199_254_740_991" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger/9_223_372_036_854_775_810" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/&#39;-1&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Number.MAX_VALUE" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Number.MIN_VALUE" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Number.MAX_SAFE_INTEGER" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/false#01" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/&#39;a&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber/Number.NaN" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/[1]" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/[&#39;1&#39;]" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Boolean()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueInteger" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/[1,_1]" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueNumber" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/(new_Boolean).valueOf()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex/{}" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/1" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/1.1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueArrayIndex" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/1_1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueConstants" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/true" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/false" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/.1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/0" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/null" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/2e4" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/undefined" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/0x2" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/NaN" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Infinity" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCallToGoFunc" time="0.010000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Number(1)" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/(new_Number()).valueOf()" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCallWithObjectReceiver" time="0.010000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/1#01" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/-1" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestCPUProfiler_Dispose" time="0.010000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/1#02" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_Date" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/function_foo(){_return_arguments_};_foo()" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestContextRegistry" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object(1n)" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestCPUProfile_Delete" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object(1)" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_Number" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_String" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestRegistryFromJSON" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object(&#39;&#39;)" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object(Symbol())" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/&#39;&#39;" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSExceptions/SyntaxError" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSExceptions/ReferenceError" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Error()" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionCall" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/TypeError()" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/SyntaxError()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/&#39;foo&#39;" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/()_=&gt;_{}" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/{}" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean/{foo:&#39;bar&#39;}" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/NaN" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString/Number" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString/String" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString/Object" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Infinity" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString/Function" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSExceptions" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueBoolean" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Number(1)" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueDetailString" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSErrorFormat/WithStack" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSErrorFormat/WithoutStack" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestJSErrorFormat" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestFunctionTemplateGetFunction" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX//./" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/Number" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/(new_Number()).valueOf()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/String" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/String_with_null_character_and_non-latin_unicode" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/Object" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString/Function" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/1#01" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueString" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestContextExec" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/-1" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/1#02" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_Date" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/function_foo(){_return_arguments_};_foo()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object(1n)" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object(1)" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_Number" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_String" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object(&#39;&#39;)" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Object(Symbol())" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/Error()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/TypeError()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/SyntaxError()" time="0.000000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX//./" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/RegExp()" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/async_function_v(){};_v#01" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/let_v_=_async_()_=&gt;_{};_v" time="0.000000"></testcase>
@@ -278,51 +278,51 @@
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_DataView(new_ArrayBuffer)" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_SharedArrayBuffer" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX/new_Proxy({},{})" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX" time="0.040000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestCPUProfiler" time="0.040000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestValueIsXXX" time="0.030000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestCPUProfile" time="0.040000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestCPUProfiler" time="0.040000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="TestCPUProfileNode" time="1.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="TestMemoryLeak" time="1.290000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="TestMemoryLeak" time="1.270000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="ExampleContext" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="ExampleContext_isolate" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="ExampleContext_globalTemplate" time="0.000000"></testcase>
-		<testcase classname="github.com/ionos-cloud/v8go" name="ExampleFunctionTemplate_fetch" time="0.530000"></testcase>
+		<testcase classname="github.com/ionos-cloud/v8go" name="ExampleFunctionTemplate_fetch" time="0.580000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="ExampleFunctionTemplate" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="ExampleJSONParse" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="ExampleJSONStringify" time="0.000000"></testcase>
 		<testcase classname="github.com/ionos-cloud/v8go" name="ExampleObject_global" time="0.000000"></testcase>
 	</testsuite>
-	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/darwin_arm64" timestamp="2023-03-05T18:39:09+01:00">
+	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/darwin_arm64" timestamp="2023-03-05T19:54:36+01:00">
 		<properties>
 			<property name="go.version" value="go1.20.1 darwin/arm64"></property>
 		</properties>
 	</testsuite>
-	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/darwin_x86_64" timestamp="2023-03-05T18:39:09+01:00">
+	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/darwin_x86_64" timestamp="2023-03-05T19:54:36+01:00">
 		<properties>
 			<property name="go.version" value="go1.20.1 darwin/arm64"></property>
 		</properties>
 	</testsuite>
-	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/include" timestamp="2023-03-05T18:39:09+01:00">
+	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/include" timestamp="2023-03-05T19:54:36+01:00">
 		<properties>
 			<property name="go.version" value="go1.20.1 darwin/arm64"></property>
 		</properties>
 	</testsuite>
-	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/include/cppgc" timestamp="2023-03-05T18:39:09+01:00">
+	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/include/cppgc" timestamp="2023-03-05T19:54:36+01:00">
 		<properties>
 			<property name="go.version" value="go1.20.1 darwin/arm64"></property>
 		</properties>
 	</testsuite>
-	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/include/libplatform" timestamp="2023-03-05T18:39:09+01:00">
+	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/include/libplatform" timestamp="2023-03-05T19:54:36+01:00">
 		<properties>
 			<property name="go.version" value="go1.20.1 darwin/arm64"></property>
 		</properties>
 	</testsuite>
-	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/linux_arm64" timestamp="2023-03-05T18:39:09+01:00">
+	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/linux_arm64" timestamp="2023-03-05T19:54:36+01:00">
 		<properties>
 			<property name="go.version" value="go1.20.1 darwin/arm64"></property>
 		</properties>
 	</testsuite>
-	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/linux_x86_64" timestamp="2023-03-05T18:39:09+01:00">
+	<testsuite tests="0" failures="0" time="0.000000" name="github.com/ionos-cloud/v8go/deps/linux_x86_64" timestamp="2023-03-05T19:54:36+01:00">
 		<properties>
 			<property name="go.version" value="go1.20.1 darwin/arm64"></property>
 		</properties>

@@ -17,6 +17,7 @@ import "C"
 // These imports forces `go mod vendor` to pull in all the folders that
 // contain V8 libraries and headers which otherwise would be ignored.
 // DO NOT REMOVE
+// nolint:revive
 import (
 	_ "github.com/ionos-cloud/v8go/deps/darwin_arm64"
 	_ "github.com/ionos-cloud/v8go/deps/darwin_x86_64"

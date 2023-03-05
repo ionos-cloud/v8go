@@ -21,6 +21,8 @@ type JSError struct {
 	Message    string
 	Location   string
 	StackTrace string
+
+	fmt.Formatter
 }
 
 func newJSError(rtnErr C.RtnError) error {
@@ -32,6 +34,7 @@ func newJSError(rtnErr C.RtnError) error {
 	C.free(unsafe.Pointer(rtnErr.msg))
 	C.free(unsafe.Pointer(rtnErr.location))
 	C.free(unsafe.Pointer(rtnErr.stack))
+
 	return err
 }
 
@@ -46,7 +49,7 @@ func (e *JSError) Format(s fmt.State, verb rune) {
 	case 'v':
 		if s.Flag('+') && e.StackTrace != "" {
 			// The StackTrace starts with the Message, so only the former needs to be printed
-			io.WriteString(s, e.StackTrace)
+			io.WriteString(s, e.StackTrace) // nolint:errcheck
 
 			// If it was a compile time error, then there wouldn't be a runtime stack trace,
 			// but StackTrace will still include the Message, making them equal. In this case,
@@ -58,7 +61,7 @@ func (e *JSError) Format(s fmt.State, verb rune) {
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, e.Message)
+		io.WriteString(s, e.Message) // nolint:errcheck
 	case 'q':
 		fmt.Fprintf(s, "%q", e.Message)
 	}
