@@ -29,9 +29,9 @@ jobs:
             - name: Create PR metadata
               id: pr_metadata
               run: |
-                "pr_branch=v8_$(cat deps/v8_version)_upgrade" >> $GITHUB_OUTPUT
-                "pr_commit_message=Upgrade V8 binaries for $(cat deps/v8_version) version" >> $GITHUB_OUTPUT
-                "pr_body=Auto-generated pull request to upgrade V8 binary for $(cat deps/v8_version) version" >> $GITHUB_OUTPUT
+                echo "pr_branch=v8_$(cat deps/v8_version)_upgrade" >> $GITHUB_OUTPUT
+                echo "pr_commit_message=Upgrade V8 binaries for $(cat deps/v8_version) version" >> $GITHUB_OUTPUT
+                echo "pr_body=Auto-generated pull request to upgrade V8 binary for $(cat deps/v8_version) version" >> $GITHUB_OUTPUT
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:
