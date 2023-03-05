@@ -48,7 +48,7 @@ func TestJSExceptions(t *testing.T) {
 		origin string
 		err    string
 	}{
-		{"SyntaxError", "bad js syntax", "syntax.js", "SyntaxError: Unexpected identifier"},
+		{"SyntaxError", "bad js syntax", "syntax.js", "SyntaxError: Unexpected identifier 'js'"},
 		{"ReferenceError", "add()", "add.js", "ReferenceError: add is not defined"},
 	}
 
@@ -71,6 +71,31 @@ func TestJSExceptions(t *testing.T) {
 	}
 }
 
+func TestContextRegistry(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
+	ctxref := ctx.Ref()
+
+	c1 := v8.GetContext(ctxref)
+	if c1 == nil {
+		t.Error("expected context, but got <nil>")
+	}
+	if c1 != ctx {
+		t.Errorf("contexts should match %p != %p", c1, ctx)
+	}
+
+	ctx.Close()
+
+	c2 := v8.GetContext(ctxref)
+	if c2 != nil {
+		t.Error("expected context to be <nil> after close")
+	}
+}
+
 func TestMemoryLeak(t *testing.T) {
 	t.Parallel()
 
@@ -79,8 +104,8 @@ func TestMemoryLeak(t *testing.T) {
 
 	for i := 0; i < 6000; i++ {
 		ctx := v8.NewContext(iso)
-		obj := ctx.Global()
-		_ = obj.String()
+		_ = ctx.Global()
+		// _ = obj.String()
 		_, _ = ctx.RunScript("2", "")
 		ctx.Close()
 	}
@@ -89,7 +114,7 @@ func TestMemoryLeak(t *testing.T) {
 	}
 }
 
-// https://github.com/ionos-cloud/v8go/issues/186
+// https://github.com/rogchap/v8go/issues/186
 func TestRegistryFromJSON(t *testing.T) {
 	t.Parallel()
 

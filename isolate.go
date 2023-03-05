@@ -4,18 +4,11 @@
 
 package v8go
 
-/*
-#include <stdlib.h>
-#include "v8go.h"
-static RtnUnboundScript IsolateCompileUnboundScriptGo(IsolatePtr iso,
-								_GoString_ src, _GoString_ org, CompileOptions options) {
-	return IsolateCompileUnboundScript(iso, _GoStringPtr(src), _GoStringLen(src),
-									_GoStringPtr(org), _GoStringLen(org), options); }
-*/
+// #include <stdlib.h>
+// #include "v8go.h"
 import "C"
 
 import (
-	"runtime"
 	"sync"
 	"unsafe"
 )
@@ -26,22 +19,14 @@ var v8once sync.Once
 // garbage collector. Most applications will create one isolate
 // with many V8 contexts for execution.
 type Isolate struct {
-	ptr             C.IsolatePtr // V8 Isolate*
-	internalContext *Context     // Default Context
+	ptr C.IsolatePtr
 
-	v8Mutex sync.Mutex       // Mutex for Lock() and Unlock() methods
-	v8Lock  C.WithIsolatePtr // Holds native lock state between Lock() and Unlock()
+	cbMutex sync.RWMutex
+	cbSeq   int
+	cbs     map[int]FunctionCallback
 
-	cbMutex sync.RWMutex             // Mutex for accessing `cbs`
-	cbSeq   int                      // Latest ID assigned to a callback
-	cbs     map[int]FunctionCallback // Array of registered callbacks
-
-	stringBuffer []byte // Temporary scratch space for cgo to copy strings to
-
-	null      *Value // Cached Value of `null`
-	undefined *Value // Cached Value of `undefined`
-	falseVal  *Value // Cached Value of `false`
-	trueVal   *Value // Cached Value of `true`
+	null      *Value
+	undefined *Value
 }
 
 // HeapStatistics represents V8 isolate heap statistics
@@ -59,8 +44,6 @@ type HeapStatistics struct {
 	NumberOfDetachedContexts uint64
 }
 
-const kIsolateStringBufferSize = 1024
-
 // NewIsolate creates a new V8 isolate. Only one thread may access
 // a given isolate at a time, but different threads may access
 // different isolates simultaneously.
@@ -69,33 +52,13 @@ const kIsolateStringBufferSize = 1024
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
 func NewIsolate() *Isolate {
-	return NewIsolateWith(0, 0)
-}
-
-// NewIsolateWith creates a new V8 isolate with control over the
-// initial heap size and the maximum heap size. If the heap overflows
-// the maximum size, the script will be terminated with an
-// ExecutionTerminated exception.
-// The heap sizes are given in bytes. If both are zero, the default
-// heap settings are used.
-func NewIsolateWith(initialHeap uint64, maxHeap uint64) *Isolate {
-	v8once.Do(func() {
-		C.Init()
-	})
-	result := C.NewIsolate(C.ulong(initialHeap), C.ulong(maxHeap))
+	initializeIfNecessary()
 	iso := &Isolate{
-		ptr:          result.isolate,
-		cbs:          make(map[int]FunctionCallback),
-		stringBuffer: make([]byte, kIsolateStringBufferSize),
+		ptr: C.NewIsolate(),
+		cbs: make(map[int]FunctionCallback),
 	}
-	iso.internalContext = &Context{
-		ptr: result.internalContext,
-		iso: iso,
-	}
-	iso.null = &Value{result.nullVal, iso.internalContext}
-	iso.undefined = &Value{result.undefinedVal, iso.internalContext}
-	iso.falseVal = &Value{result.falseVal, iso.internalContext}
-	iso.trueVal = &Value{result.trueVal, iso.internalContext}
+	iso.null = newValueNull(iso)
+	iso.undefined = newValueUndefined(iso)
 	return iso
 }
 
@@ -124,6 +87,11 @@ type CompileOptions struct {
 // that code cache.
 // error will be of type `JSError` if not nil.
 func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOptions) (*UnboundScript, error) {
+	cSource := C.CString(source)
+	cOrigin := C.CString(origin)
+	defer C.free(unsafe.Pointer(cSource))
+	defer C.free(unsafe.Pointer(cOrigin))
+
 	var cOptions C.CompileOptions
 	if opts.CachedData != nil {
 		if opts.Mode != 0 {
@@ -138,7 +106,7 @@ func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOption
 		cOptions.compileOption = C.int(opts.Mode)
 	}
 
-	rtn := C.IsolateCompileUnboundScriptGo(i.ptr, source, origin, cOptions)
+	rtn := C.IsolateCompileUnboundScript(i.ptr, cSource, cOrigin, cOptions)
 	if rtn.ptr == nil {
 		return nil, newJSError(rtn.error)
 	}
@@ -175,39 +143,8 @@ func (i *Isolate) Dispose() {
 	if i.ptr == nil {
 		return
 	}
-	if i.v8Lock != nil {
-		i.Unlock()
-	}
 	C.IsolateDispose(i.ptr)
 	i.ptr = nil
-}
-
-// Acquires a V8 lock on the Isolate for this thread. This speeds up subsequent calls involving
-// Contexts, Values, Objects belonging to the Isolate.
-// You MUST call Unlock when done. (Disposing the Isolate will call Unlock for you.)
-// You MUST NOT make multiple calls to Lock; it's not recursive.
-func (i *Isolate) Lock() {
-	i.v8Mutex.Lock()
-	if i.v8Lock != nil {
-		panic("v8.Context.Lock called while already locked")
-	}
-	// LockOSThread ensures that C calls from this goroutine will always be made on the same
-	// OS thread. This is absolutely necessary for making nested calls to v8::Locker (here and
-	// then in whatever other methods are called) so that they'll be treated as nested calls and
-	// not calls by different threads; otherwise the subsequent call will deadlock.
-	runtime.LockOSThread()
-	i.v8Lock = C.IsolateLock(i.ptr)
-}
-
-// Releases the V8 locks acquired by Lock.
-func (i *Isolate) Unlock() {
-	if i.v8Lock == nil {
-		panic("v8.Context.Unlock called without first being locked")
-	}
-	C.IsolateUnlock(i.v8Lock)
-	i.v8Lock = nil
-	runtime.UnlockOSThread()
-	i.v8Mutex.Unlock()
 }
 
 // ThrowException schedules an exception to be thrown when returning to
@@ -219,8 +156,7 @@ func (i *Isolate) ThrowException(value *Value) *Value {
 		panic("Isolate has been disposed")
 	}
 	return &Value{
-		ref: C.IsolateThrowException(i.ptr, value.valuePtr()),
-		ctx: value.ctx,
+		ptr: C.IsolateThrowException(i.ptr, value.ptr),
 	}
 }
 

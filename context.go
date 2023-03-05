@@ -7,18 +7,33 @@ package v8go
 // #include <stdlib.h>
 // #include "v8go.h"
 import "C"
+
 import (
 	"runtime"
-	"runtime/cgo"
+	"sync"
 	"unsafe"
+)
+
+// Due to the limitations of passing pointers to C from Go we need to create
+// a registry so that we can lookup the Context from any given callback from V8.
+// This is similar to what is described here: https://github.com/golang/go/wiki/cgo#function-variables
+type ctxRef struct {
+	ctx      *Context
+	refCount int
+}
+
+var (
+	ctxMutex    sync.RWMutex
+	ctxRegistry = make(map[int]*ctxRef)
+	ctxSeq      = 0
 )
 
 // Context is a global root execution environment that allows separate,
 // unrelated, JavaScript applications to run in a single instance of V8.
 type Context struct {
-	ptr        C.ContextPtr // Pointer to C++ V8GoContext object
-	iso        *Isolate     // The Isolate this Context belongs to
-	selfHandle cgo.Handle   // Opaque handle pointing to the Context itself
+	ref int
+	ptr C.ContextPtr
+	iso *Isolate
 }
 
 type contextOptions struct {
@@ -49,22 +64,30 @@ func NewContext(opt ...ContextOption) *Context {
 		opts.gTmpl = &ObjectTemplate{&template{}}
 	}
 
+	ctxMutex.Lock()
+	ctxSeq++
+	ref := ctxSeq
+	ctxMutex.Unlock()
+
 	ctx := &Context{
+		ref: ref,
+		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
 		iso: opts.iso,
 	}
-	ctx.selfHandle = cgo.NewHandle(ctx)
-	ctx.ptr = C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.uintptr_t(ctx.selfHandle))
+	ctx.register()
 	runtime.KeepAlive(opts.gTmpl)
 	return ctx
-}
-
-func contextFromHandle(handle C.uintptr_t) *Context {
-	return cgo.Handle(handle).Value().(*Context)
 }
 
 // Isolate gets the current context's parent isolate.
 func (c *Context) Isolate() *Isolate {
 	return c.iso
+}
+
+func (c *Context) RetainedValueCount() int {
+	ctxMutex.Lock()
+	defer ctxMutex.Unlock()
+	return int(C.ContextRetainedValueCount(c.ptr))
 }
 
 // RunScript executes the source JavaScript; origin (a.k.a. filename) provides a
@@ -76,7 +99,7 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
-	rtn := C.RunScript(c.ptr, cSource, C.int(len(source)), cOrigin, C.int(len(origin)))
+	rtn := C.RunScript(c.ptr, cSource, cOrigin)
 	return valueResult(c, rtn)
 }
 
@@ -100,44 +123,63 @@ func (c *Context) PerformMicrotaskCheckpoint() {
 }
 
 // Close will dispose the context and free the memory.
-// You must call this yourself: the Go garbage collector will not free an unused open Context!
 // Access to any values associated with the context after calling Close may panic.
 func (c *Context) Close() {
+	c.deregister()
 	C.ContextFree(c.ptr)
-	c.selfHandle.Delete()
 	c.ptr = nil
 }
 
+func (c *Context) register() {
+	ctxMutex.Lock()
+	r := ctxRegistry[c.ref]
+	if r == nil {
+		r = &ctxRef{ctx: c}
+		ctxRegistry[c.ref] = r
+	}
+	r.refCount++
+	ctxMutex.Unlock()
+}
+
+func (c *Context) deregister() {
+	ctxMutex.Lock()
+	defer ctxMutex.Unlock()
+	r := ctxRegistry[c.ref]
+	if r == nil {
+		return
+	}
+	r.refCount--
+	if r.refCount <= 0 {
+		delete(ctxRegistry, c.ref)
+	}
+}
+
+func getContext(ref int) *Context {
+	ctxMutex.RLock()
+	defer ctxMutex.RUnlock()
+	r := ctxRegistry[ref]
+	if r == nil {
+		return nil
+	}
+	return r.ctx
+}
+
+//export goContext
+func goContext(ref int) C.ContextPtr {
+	ctx := getContext(ref)
+	return ctx.ptr
+}
+
 func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
-	if rtn.error.msg != nil {
+	if rtn.value == nil {
 		return nil, newJSError(rtn.error)
 	}
 	return &Value{rtn.value, ctx}, nil
 }
 
 func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {
-	if rtn.error.msg != nil {
+	if rtn.value == nil {
 		return nil, newJSError(rtn.error)
 	}
 	return &Object{&Value{rtn.value, ctx}}, nil
-}
-
-func (c *Context) pushValueScope() uint32 {
-	return uint32(C.PushValueScope(c.ptr))
-}
-
-func (c *Context) popValueScope(scope uint32) {
-	if C.PopValueScope(c.ptr, C.uint(scope)) == 0 {
-		panic("Improper call to Context.PopValueScope: Scope is not current")
-	}
-}
-
-// Calls the callback; any Values created in this Context during the callback will be
-// invalidated when the callback returns and must not be referenced.
-// This helps to reduce memory growth in a long-lived Context, since otherwise the Values
-// would hold onto their JavaScript counterparts until the Context is closed.
-func (c *Context) WithTemporaryValues(callback func()) {
-	scope := c.pushValueScope()
-	defer c.popValueScope(scope)
-	callback()
 }

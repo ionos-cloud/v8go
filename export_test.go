@@ -13,3 +13,11 @@ func (i *Isolate) RegisterCallback(cb FunctionCallback) int {
 func (i *Isolate) GetCallback(ref int) FunctionCallback {
 	return i.getCallback(ref)
 }
+
+// GetContext is exported for testing only.
+var GetContext = getContext
+
+// Ref is exported for testing only.
+func (c *Context) Ref() int {
+	return c.ref
+}

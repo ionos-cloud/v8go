@@ -4,13 +4,10 @@
 
 package v8go
 
-/*
-#include <stdlib.h>
-#include "v8go.h"
-static RtnValue JSONParseGo(ContextPtr ctx, _GoString_ str) {
-	return JSONParse(ctx, _GoStringPtr(str), _GoStringLen(str)); }
-*/
+// #include <stdlib.h>
+// #include "v8go.h"
 import "C"
+
 import (
 	"errors"
 	"unsafe"
@@ -22,32 +19,25 @@ func JSONParse(ctx *Context, str string) (*Value, error) {
 	if ctx == nil {
 		return nil, errors.New("v8go: Context is required")
 	}
-	rtn := C.JSONParseGo(ctx.ptr, str)
+	cstr := C.CString(str)
+	defer C.free(unsafe.Pointer(cstr))
+
+	rtn := C.JSONParse(ctx.ptr, cstr)
 	return valueResult(ctx, rtn)
 }
 
 // JSONStringify tries to stringify the JSON-serializable object value and returns it as string.
 func JSONStringify(ctx *Context, val Valuer) (string, error) {
-	var v *Value
-	if val != nil {
-		v = val.value()
-	}
-	if v == nil {
+	if val == nil || val.value() == nil {
 		return "", errors.New("v8go: Value is required")
 	}
-	// It's OK to use the Isolate's shared buffer because we already require that client code can
-	// only access an Isolate, and Values derived from it, on a single goroutine at a time.
-	buffer := v.ctx.iso.stringBuffer
-	bufPtr := unsafe.Pointer(&buffer[0])
-
-	s := C.JSONStringify(v.valuePtr(), bufPtr, C.int(len(buffer)))
-	if s.data == nil {
-		return "", errors.New("v8go could not encode Value to JSON")
-	} else if unsafe.Pointer(s.data) == bufPtr {
-		return string(buffer[0:s.length]), nil
-	} else {
-		// Result was too big for buffer, so the C++ code malloc-ed its own
-		defer C.free(unsafe.Pointer(s.data))
-		return C.GoStringN(s.data, C.int(s.length)), nil
+	// If a nil context is passed we'll use the context/isolate that created the value.
+	var ctxPtr C.ContextPtr
+	if ctx != nil {
+		ctxPtr = ctx.ptr
 	}
+
+	str := C.JSONStringify(ctxPtr, val.value().ptr)
+	defer C.free(unsafe.Pointer(str))
+	return C.GoString(str), nil
 }

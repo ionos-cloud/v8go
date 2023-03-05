@@ -4,26 +4,16 @@
 
 package v8go
 
-/*
-#include <stdlib.h>
-#include "v8go.h"
-static void TemplateSetValueGo(TemplatePtr ptr,
-								_GoString_ name,
-								ValuePtr val_ptr,
-								int attributes) {
-	return TemplateSetValue(ptr, _GoStringPtr(name), _GoStringLen(name), val_ptr, attributes);}
-static void TemplateSetTemplateGo(TemplatePtr ptr,
-	   							_GoString_ name,
-	   							TemplatePtr obj_ptr,
-	   							int attributes) {
-	return TemplateSetTemplate(ptr, _GoStringPtr(name), _GoStringLen(name),
-							   obj_ptr, attributes); }
-*/
+// #include <stdlib.h>
+// #include "v8go.h"
 import "C"
+
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"runtime"
+	"unsafe"
 )
 
 type template struct {
@@ -36,29 +26,34 @@ type template struct {
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
 // then a value will be created and set as the value property.
 func (t *template) Set(name string, val interface{}, attributes ...PropertyAttribute) error {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
 	var attrs PropertyAttribute
 	for _, a := range attributes {
 		attrs |= a
 	}
 
 	switch v := val.(type) {
+	case string, int32, uint32, int64, uint64, float64, bool, *big.Int:
+		newVal, err := NewValue(t.iso, v)
+		if err != nil {
+			return fmt.Errorf("v8go: unable to create new value: %v", err)
+		}
+		C.TemplateSetValue(t.ptr, cname, newVal.ptr, C.int(attrs))
 	case *ObjectTemplate:
-		C.TemplateSetTemplateGo(t.ptr, name, v.ptr, C.int(attrs))
+		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
 		runtime.KeepAlive(v)
 	case *FunctionTemplate:
-		C.TemplateSetTemplateGo(t.ptr, name, v.ptr, C.int(attrs))
+		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
 		runtime.KeepAlive(v)
 	case *Value:
 		if v.IsObject() || v.IsExternal() {
 			return errors.New("v8go: unsupported property: value type must be a primitive or use a template")
 		}
-		C.TemplateSetValueGo(t.ptr, name, v.valuePtr(), C.int(attrs))
+		C.TemplateSetValue(t.ptr, cname, v.ptr, C.int(attrs))
 	default:
-		newVal, err := NewValue(t.iso, v)
-		if err != nil {
-			return fmt.Errorf("v8go: unsupported property type `%T`, must be a type supported by NewValue(), or *v8go.ObjectTemplate or *v8go.FunctionTemplate", v)
-		}
-		C.TemplateSetValueGo(t.ptr, name, newVal.valuePtr(), C.int(attrs))
+		return fmt.Errorf("v8go: unsupported property type `%T`, must be one of string, int32, uint32, int64, uint64, float64, *big.Int, *v8go.Value, *v8go.ObjectTemplate or *v8go.FunctionTemplate", v)
 	}
 	runtime.KeepAlive(t)
 

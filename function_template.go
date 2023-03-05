@@ -7,6 +7,7 @@ package v8go
 // #include <stdlib.h>
 // #include "v8go.h"
 import "C"
+
 import (
 	"runtime"
 	"unsafe"
@@ -35,6 +36,13 @@ func (i *FunctionCallbackInfo) This() *Object {
 // Args returns a slice of the value arguments that are passed to the JS function.
 func (i *FunctionCallbackInfo) Args() []*Value {
 	return i.args
+}
+
+func (i *FunctionCallbackInfo) Release() {
+	for _, arg := range i.args {
+		arg.Release()
+	}
+	i.this.Release()
 }
 
 // FunctionTemplate is used to create functions at runtime.
@@ -76,27 +84,27 @@ func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
 
 // Note that ideally `thisAndArgs` would be split into two separate arguments, but they were combined
 // to workaround an ERROR_COMMITMENT_LIMIT error on windows that was detected in CI.
+//
 //export goFunctionCallback
-func goFunctionCallback(ctxHandle C.uintptr_t, cbref int, thisAndArgs *C.ValueRef, argsCount int) C.ValuePtr {
-	ctx := contextFromHandle(ctxHandle)
+func goFunctionCallback(ctxref int, cbref int, thisAndArgs *C.ValuePtr, argsCount int) C.ValuePtr {
+	ctx := getContext(ctxref)
+
 	this := *thisAndArgs
 	info := &FunctionCallbackInfo{
 		ctx:  ctx,
-		this: &Object{&Value{this, ctx}},
+		this: &Object{&Value{ptr: this, ctx: ctx}},
+		args: make([]*Value, argsCount),
 	}
 
-	if argsCount > 0 {
-		info.args = make([]*Value, argsCount)
-		argv := (*[1 << 30]C.ValueRef)(unsafe.Pointer(thisAndArgs))[1 : argsCount+1 : argsCount+1]
-		for i, v := range argv {
-			val := &Value{v, ctx}
-			info.args[i] = val
-		}
+	argv := (*[1 << 30]C.ValuePtr)(unsafe.Pointer(thisAndArgs))[1 : argsCount+1 : argsCount+1]
+	for i, v := range argv {
+		val := &Value{ptr: v, ctx: ctx}
+		info.args[i] = val
 	}
 
 	callbackFunc := ctx.iso.getCallback(cbref)
 	if val := callbackFunc(info); val != nil {
-		return val.valuePtr()
+		return val.ptr
 	}
-	return C.ValuePtr{}
+	return nil
 }

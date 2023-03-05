@@ -10,6 +10,7 @@ package v8go
 // #include "v8go.h"
 // #include <stdlib.h>
 import "C"
+
 import (
 	"strings"
 	"unsafe"
@@ -17,7 +18,7 @@ import (
 
 // Version returns the version of the V8 Engine with the -v8go suffix
 func Version() string {
-	return C.GoString(C.V8Version())
+	return C.GoString(C.Version())
 }
 
 // SetFlags sets flags for V8. For possible flags: https://github.com/v8/v8/blob/master/src/flags/flag-definitions.h
@@ -26,6 +27,15 @@ func Version() string {
 // Flags will affect all Isolates created, even after creation.
 func SetFlags(flags ...string) {
 	cflags := C.CString(strings.Join(flags, " "))
-	C.SetV8Flags(cflags)
+	C.SetFlags(cflags)
 	C.free(unsafe.Pointer(cflags))
+}
+
+func initializeIfNecessary() {
+	v8once.Do(func() {
+		cflags := C.CString("--no-freeze_flags_after_init")
+		defer C.free(unsafe.Pointer(cflags))
+		C.SetFlags(cflags)
+		C.Init()
+	})
 }

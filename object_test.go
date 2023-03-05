@@ -11,58 +11,6 @@ import (
 	v8 "github.com/ionos-cloud/v8go"
 )
 
-func TestNewObject(t *testing.T) {
-	t.Parallel()
-	ctx := v8.NewContext()
-	iso := ctx.Isolate()
-	defer iso.Dispose()
-	defer ctx.Close()
-
-	t.Run("Object", func(t *testing.T) {
-		obj := ctx.NewObject()
-		if !obj.IsObject() {
-			t.Errorf("Result of NewObject returned false from IsObject")
-		}
-		if typ := obj.Value.GetType(); typ != v8.ObjectType {
-			t.Errorf("Result of NewObject has wrong type %d, should be %d", typ, v8.ObjectType)
-		}
-		if deets := obj.DetailString(); deets != "#<Object>" {
-			t.Errorf("unexpected result from NewObject: %q", deets)
-		}
-	})
-
-	t.Run("Array", func(t *testing.T) {
-		arr := ctx.NewArray(5)
-		if !arr.IsArray() {
-			t.Errorf("unexpected false result from IsArray")
-		}
-		if typ := arr.Value.GetType(); typ != v8.ObjectType {
-			t.Errorf("result of NewArray has wrong type %d, should be %d", typ, v8.ObjectType)
-		}
-		if deets := arr.DetailString(); deets != "[object Array]" {
-			t.Errorf("unexpected result from DetailString: %q", deets)
-		}
-		if len := arr.Length(); len != 5 {
-			t.Errorf("unexpected result from ArrayLength: %d", len)
-		}
-		var v v8.Valuer = arr
-		if v, ok := v.(*v8.Array); !ok || v != arr {
-			t.Errorf("Array doesn't implement Valuer interface?!")
-		}
-		for i := uint32(0); i < 5; i++ {
-			arr.SetIdx(i, fmt.Sprintf("%d", i))
-		}
-		if str := arr.String(); str != "0,1,2,3,4" {
-			t.Errorf("unexpected result from String: %q", str)
-		}
-		if v, err := ctx.NewValue(arr); err != nil {
-			t.Errorf("NewValue didn't like the Array: %v", err)
-		} else if !v.SameValue(arr.Value) {
-			t.Errorf("NewValue didn't return the same value as the Array")
-		}
-	})
-}
-
 func TestObjectMethodCall(t *testing.T) {
 	t.Parallel()
 
@@ -103,31 +51,14 @@ func TestObjectSet(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	obj := ctx.NewObject()
-	ctx.Global().Set("foo", obj)
+	val, _ := ctx.RunScript("const foo = {}; foo", "")
+	obj, _ := val.AsObject()
 	if err := obj.Set("bar", "baz"); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	baz, _ := ctx.RunScript("foo.bar", "")
 	if baz.String() != "baz" {
 		t.Errorf("unexpected value: %q", baz)
-	}
-
-	// Test using *Value as key:
-	wowKey, _ := ctx.NewValue("wow")
-	if err := obj.SetKey(wowKey, "such OOP"); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if result, err := obj.GetKey(wowKey); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	} else if resultStr := result.String(); resultStr != "such OOP" {
-		t.Errorf("unexpected value: %q", resultStr)
-	}
-	if !obj.HasKey(wowKey) {
-		t.Errorf("Unexpected false from HasKey")
-	}
-	if err := obj.SetKey(v8.Null(ctx.Isolate()), 1234); err == nil {
-		t.Errorf("expected error calling SetKey with non-string key, but got none")
 	}
 
 	if err := obj.Set("", "zero"); err != nil {
@@ -140,6 +71,9 @@ func TestObjectSet(t *testing.T) {
 	}
 
 	if err := obj.Set("a", nil); err == nil {
+		t.Error("expected error but got <nil>")
+	}
+	if err := obj.Set("a", 0); err == nil {
 		t.Error("expected error but got <nil>")
 	}
 	if err := obj.SetIdx(10, "ten"); err != nil {
@@ -265,7 +199,6 @@ func TestObjectDelete(t *testing.T) {
 	if !obj.DeleteIdx(2) {
 		t.Error("expected delete to return true, got false")
 	}
-
 }
 
 func ExampleObject_global() {

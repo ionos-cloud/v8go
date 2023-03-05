@@ -209,7 +209,7 @@ func TestIsolateThrowException(t *testing.T) {
 		v := iso.ThrowException(val)
 
 		if !v.IsNullOrUndefined() {
-			t.Errorf("expected result to be null or undefined; got %+v", v)
+			t.Error("expected result to be null or undefined")
 		}
 	}
 

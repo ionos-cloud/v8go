@@ -7,6 +7,7 @@ package v8go
 // #include <stdlib.h>
 // #include "v8go.h"
 import "C"
+
 import (
 	"errors"
 )
@@ -52,7 +53,7 @@ func NewPromiseResolver(ctx *Context) (*PromiseResolver, error) {
 // on multiple calls.
 func (r *PromiseResolver) GetPromise() *Promise {
 	if r.prom == nil {
-		ptr := C.PromiseResolverGetPromise(r.valuePtr())
+		ptr := C.PromiseResolverGetPromise(r.ptr)
 		val := &Value{ptr, r.ctx}
 		r.prom = &Promise{&Object{val}}
 	}
@@ -62,25 +63,25 @@ func (r *PromiseResolver) GetPromise() *Promise {
 // Resolve invokes the Promise resolve state with the given value.
 // The Promise state will transition from Pending to Fulfilled.
 func (r *PromiseResolver) Resolve(val Valuer) bool {
-	return C.PromiseResolverResolve(r.valuePtr(), val.value().valuePtr()) != 0
+	return C.PromiseResolverResolve(r.ptr, val.value().ptr) != 0
 }
 
 // Reject invokes the Promise reject state with the given value.
 // The Promise state will transition from Pending to Rejected.
 func (r *PromiseResolver) Reject(err *Value) bool {
-	return C.PromiseResolverReject(r.valuePtr(), err.valuePtr()) != 0
+	return C.PromiseResolverReject(r.ptr, err.ptr) != 0
 }
 
 // State returns the current state of the Promise.
 func (p *Promise) State() PromiseState {
-	return PromiseState(C.PromiseState(p.valuePtr()))
+	return PromiseState(C.PromiseState(p.ptr))
 }
 
 // Result is the value result of the Promise. The Promise must
 // NOT be in a Pending state, otherwise may panic. Call promise.State()
 // to validate state before calling for the result.
 func (p *Promise) Result() *Value {
-	ptr := C.PromiseResult(p.valuePtr())
+	ptr := C.PromiseResult(p.ptr)
 	val := &Value{ptr, p.ctx}
 	return val
 }
@@ -98,11 +99,11 @@ func (p *Promise) Then(cbs ...FunctionCallback) *Promise {
 	switch len(cbs) {
 	case 1:
 		cbID := p.ctx.iso.registerCallback(cbs[0])
-		rtn = C.PromiseThen(p.valuePtr(), C.int(cbID))
+		rtn = C.PromiseThen(p.ptr, C.int(cbID))
 	case 2:
 		cbID1 := p.ctx.iso.registerCallback(cbs[0])
 		cbID2 := p.ctx.iso.registerCallback(cbs[1])
-		rtn = C.PromiseThen2(p.valuePtr(), C.int(cbID1), C.int(cbID2))
+		rtn = C.PromiseThen2(p.ptr, C.int(cbID1), C.int(cbID2))
 
 	default:
 		panic("1 or 2 callbacks required")
@@ -118,7 +119,7 @@ func (p *Promise) Then(cbs ...FunctionCallback) *Promise {
 // See Then for other details.
 func (p *Promise) Catch(cb FunctionCallback) *Promise {
 	cbID := p.ctx.iso.registerCallback(cb)
-	rtn := C.PromiseCatch(p.valuePtr(), C.int(cbID))
+	rtn := C.PromiseCatch(p.ptr, C.int(cbID))
 	obj, err := objectResult(p.ctx, rtn)
 	if err != nil {
 		panic(err) // TODO: Return error

@@ -9,6 +9,7 @@ package v8go
 #include "v8go.h"
 */
 import "C"
+
 import (
 	"time"
 	"unsafe"

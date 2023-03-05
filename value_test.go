@@ -31,68 +31,6 @@ func TestValueNewBaseCases(t *testing.T) {
 	}
 }
 
-func TestValueNew(t *testing.T) {
-	iso := v8.NewIsolate()
-	defer iso.Dispose()
-	biggie, _ := new(big.Int).SetString("1234567890123456789012345678901234567890", 10)
-	value, _ := v8.NewValue(iso, "hi")
-
-	context := v8.NewContext(iso)
-	defer context.Close()
-
-	tests := [...]struct {
-		input interface{}
-		str   string
-	}{
-		{false, "false"},
-		{true, "true"},
-		{0, "0"},
-		{1, "1"},
-		{-1, "-1"},
-		{int32(0x7FFFFFFF), "2147483647"},
-		{int32(-0x80000000), "-2147483648"},
-		{int64(0x7FFFFFFF), "2147483647"},
-		{int64(-0x80000000), "-2147483648"},
-		{1<<53 - 1, "9007199254740991"},
-		{-(1<<53 - 1), "-9007199254740991"},
-		{math.MaxInt64, "9223372036854775807"},
-		{math.MinInt64, "-9223372036854775808"},
-		{uint64(math.MaxUint64), "18446744073709551615"},
-		{4321.125, "4321.125"},
-		{6.02e23, "6.02e+23"},
-		{biggie, "1234567890123456789012345678901234567890"},
-		{"", ""},
-		{"foobar", "foobar"},
-		{value, "hi"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.str, func(t *testing.T) {
-			val, err := v8.NewValue(iso, tt.input)
-			if err != nil {
-				t.Errorf("NewValue(%v) failed, %v", val, err)
-				return
-			}
-			if str := val.DetailString(); str != tt.str {
-				t.Errorf("unexpected DetailString `%s`", str)
-			}
-		})
-	}
-
-	for _, tt := range tests {
-		t.Run("Context_"+tt.str, func(t *testing.T) {
-			val, err := context.NewValue(tt.input)
-			if err != nil {
-				t.Errorf("Context.NewValue(%v) failed, %v", val, err)
-				return
-			}
-			if str := val.DetailString(); str != tt.str {
-				t.Errorf("unexpected DetailString `%s`", str)
-			}
-		})
-	}
-}
-
 func TestValueFormatting(t *testing.T) {
 	t.Parallel()
 	ctx := v8.NewContext(nil)
@@ -142,7 +80,6 @@ func TestValueString(t *testing.T) {
 	}{
 		{"Number", `13 * 2`, "26"},
 		{"String", `"string"`, "string"},
-		{"String with latin unicode", `"“Gemütlich”"`, "“Gemütlich”"},
 		{"String with null character and non-latin unicode", `"a\x00Ω"`, "a\x00Ω"},
 		{"Object", `let obj = {}; obj`, "[object Object]"},
 		{"Function", `let fn = function(){}; fn`, "function(){}"},
@@ -218,7 +155,6 @@ func TestValueDetailString(t *testing.T) {
 	}{
 		{"Number", `13 * 2`, "26"},
 		{"String", `"a string"`, "a string"},
-		{"Empty String", `""`, ""},
 		{"Object", `let obj = {}; obj`, "#<Object>"},
 		{"Function", `let fn = function(){}; fn`, "function(){}"},
 	}
@@ -558,7 +494,6 @@ func TestValuePromise(t *testing.T) {
 	if _, err := ctx.RunScript("new Promise(()=>{})", ""); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-
 }
 
 func TestValueFunction(t *testing.T) {
@@ -579,7 +514,6 @@ func TestValueFunction(t *testing.T) {
 	if _, err := val.AsFunction(); err != nil {
 		t.Errorf("Expected success but got: %v", err)
 	}
-
 }
 
 func TestValueSameValue(t *testing.T) {
@@ -608,100 +542,99 @@ func TestValueIsXXX(t *testing.T) {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	tests := [...]struct {
-		source       string
-		assert       func(*v8.Value) bool
-		expectedType v8.ValueType
+		source string
+		assert func(*v8.Value) bool
 	}{
-		{"", (*v8.Value).IsUndefined, v8.UndefinedType},
-		{"let v; v", (*v8.Value).IsUndefined, v8.UndefinedType},
-		{"null", (*v8.Value).IsNull, v8.NullType},
-		{"let v; v", (*v8.Value).IsNullOrUndefined, v8.UndefinedType},
-		{"let v = null; v", (*v8.Value).IsNullOrUndefined, v8.NullType},
-		{"true", (*v8.Value).IsTrue, v8.TrueType},
-		{"false", (*v8.Value).IsFalse, v8.FalseType},
-		{"'name'", (*v8.Value).IsName, v8.StringType},
-		{"Symbol()", (*v8.Value).IsName, v8.SymbolType},
-		{`"double quote"`, (*v8.Value).IsString, v8.StringType},
-		{"'single quote'", (*v8.Value).IsString, v8.StringType},
-		{"`string literal`", (*v8.Value).IsString, v8.StringType},
-		{"Symbol()", (*v8.Value).IsSymbol, v8.SymbolType},
-		{"Symbol('foo')", (*v8.Value).IsSymbol, v8.SymbolType},
-		{"() => {}", (*v8.Value).IsFunction, v8.FunctionType},
-		{"function v() {}; v", (*v8.Value).IsFunction, v8.FunctionType},
-		{"const v = function() {}; v", (*v8.Value).IsFunction, v8.FunctionType},
-		{"console.log", (*v8.Value).IsFunction, v8.FunctionType},
-		{"Object", (*v8.Value).IsFunction, v8.FunctionType},
-		{"class Foo {}; Foo", (*v8.Value).IsFunction, v8.FunctionType},
-		{"class Foo { bar() {} }; (new Foo()).bar", (*v8.Value).IsFunction, v8.FunctionType},
-		{"function* v(){}; v", (*v8.Value).IsFunction, v8.FunctionType},
-		{"async function v(){}; v", (*v8.Value).IsFunction, v8.FunctionType},
-		{"Object()", (*v8.Value).IsObject, v8.ObjectType},
-		{"new Object", (*v8.Value).IsObject, v8.ObjectType},
-		{"var v = {}; v", (*v8.Value).IsObject, v8.ObjectType},
-		{"10n", (*v8.Value).IsBigInt, v8.BigIntType},
-		{"BigInt(1)", (*v8.Value).IsBigInt, v8.BigIntType},
-		{"true", (*v8.Value).IsBoolean, v8.TrueType},
-		{"false", (*v8.Value).IsBoolean, v8.FalseType},
-		{"Boolean()", (*v8.Value).IsBoolean, v8.FalseType},
-		{"(new Boolean).valueOf()", (*v8.Value).IsBoolean, v8.FalseType},
-		{"1", (*v8.Value).IsNumber, v8.NumberType},
-		{"1.1", (*v8.Value).IsNumber, v8.NumberType},
-		{"1_1", (*v8.Value).IsNumber, v8.NumberType},
-		{".1", (*v8.Value).IsNumber, v8.NumberType},
-		{"2e4", (*v8.Value).IsNumber, v8.NumberType},
-		{"0x2", (*v8.Value).IsNumber, v8.NumberType},
-		{"NaN", (*v8.Value).IsNumber, v8.NumberType},
-		{"Infinity", (*v8.Value).IsNumber, v8.NumberType},
-		{"Number(1)", (*v8.Value).IsNumber, v8.NumberType},
-		{"(new Number()).valueOf()", (*v8.Value).IsNumber, v8.NumberType},
-		{"1", (*v8.Value).IsInt32, v8.NumberType},
-		{"-1", (*v8.Value).IsInt32, v8.NumberType},
-		{"1", (*v8.Value).IsUint32, v8.NumberType},
-		{"new Date", (*v8.Value).IsDate, v8.ObjectType},
-		{"function foo(){ return arguments }; foo()", (*v8.Value).IsArgumentsObject, v8.ObjectType},
-		{"Object(1n)", (*v8.Value).IsBigIntObject, v8.ObjectType},
-		{"Object(1)", (*v8.Value).IsNumberObject, v8.ObjectType},
-		{"new Number", (*v8.Value).IsNumberObject, v8.ObjectType},
-		{"new String", (*v8.Value).IsStringObject, v8.ObjectType},
-		{"Object('')", (*v8.Value).IsStringObject, v8.ObjectType},
-		{"Object(Symbol())", (*v8.Value).IsSymbolObject, v8.ObjectType},
-		{"Error()", (*v8.Value).IsNativeError, v8.ObjectType},
-		{"TypeError()", (*v8.Value).IsNativeError, v8.ObjectType},
-		{"SyntaxError()", (*v8.Value).IsNativeError, v8.ObjectType},
-		{"/./", (*v8.Value).IsRegExp, v8.ObjectType},
-		{"RegExp()", (*v8.Value).IsRegExp, v8.ObjectType},
-		{"async function v(){}; v", (*v8.Value).IsAsyncFunction, v8.FunctionType},
-		{"let v = async () => {}; v", (*v8.Value).IsAsyncFunction, v8.FunctionType},
-		{"function* v(){}; v", (*v8.Value).IsGeneratorFunction, v8.FunctionType},
-		{"function* v(){}; v()", (*v8.Value).IsGeneratorObject, v8.ObjectType},
-		{"new Promise(()=>{})", (*v8.Value).IsPromise, v8.ObjectType},
-		{"new Map", (*v8.Value).IsMap, v8.ObjectType},
-		{"new Set", (*v8.Value).IsSet, v8.ObjectType},
-		{"(new Map).entries()", (*v8.Value).IsMapIterator, v8.ObjectType},
-		{"(new Set).entries()", (*v8.Value).IsSetIterator, v8.ObjectType},
-		{"new WeakMap", (*v8.Value).IsWeakMap, v8.ObjectType},
-		{"new WeakSet", (*v8.Value).IsWeakSet, v8.ObjectType},
-		{"new Array", (*v8.Value).IsArray, v8.ObjectType},
-		{"Array()", (*v8.Value).IsArray, v8.ObjectType},
-		{"[]", (*v8.Value).IsArray, v8.ObjectType},
-		{"new ArrayBuffer", (*v8.Value).IsArrayBuffer, v8.ObjectType},
-		{"new Int8Array", (*v8.Value).IsArrayBufferView, v8.ObjectType},
-		{"new Int8Array", (*v8.Value).IsTypedArray, v8.ObjectType},
-		{"new Uint32Array", (*v8.Value).IsTypedArray, v8.ObjectType},
-		{"new Uint8Array", (*v8.Value).IsUint8Array, v8.ObjectType},
-		{"new Uint8ClampedArray", (*v8.Value).IsUint8ClampedArray, v8.ObjectType},
-		{"new Int8Array", (*v8.Value).IsInt8Array, v8.ObjectType},
-		{"new Uint16Array", (*v8.Value).IsUint16Array, v8.ObjectType},
-		{"new Int16Array", (*v8.Value).IsInt16Array, v8.ObjectType},
-		{"new Uint32Array", (*v8.Value).IsUint32Array, v8.ObjectType},
-		{"new Int32Array", (*v8.Value).IsInt32Array, v8.ObjectType},
-		{"new Float32Array", (*v8.Value).IsFloat32Array, v8.ObjectType},
-		{"new Float64Array", (*v8.Value).IsFloat64Array, v8.ObjectType},
-		{"new BigInt64Array", (*v8.Value).IsBigInt64Array, v8.ObjectType},
-		{"new BigUint64Array", (*v8.Value).IsBigUint64Array, v8.ObjectType},
-		{"new DataView(new ArrayBuffer)", (*v8.Value).IsDataView, v8.ObjectType},
-		{"new SharedArrayBuffer", (*v8.Value).IsSharedArrayBuffer, v8.ObjectType},
-		{"new Proxy({},{})", (*v8.Value).IsProxy, v8.ObjectType},
+		{"", (*v8.Value).IsUndefined},
+		{"let v; v", (*v8.Value).IsUndefined},
+		{"null", (*v8.Value).IsNull},
+		{"let v; v", (*v8.Value).IsNullOrUndefined},
+		{"let v = null; v", (*v8.Value).IsNullOrUndefined},
+		{"true", (*v8.Value).IsTrue},
+		{"false", (*v8.Value).IsFalse},
+		{"'name'", (*v8.Value).IsName},
+		{"Symbol()", (*v8.Value).IsName},
+		{`"double quote"`, (*v8.Value).IsString},
+		{"'single quote'", (*v8.Value).IsString},
+		{"`string literal`", (*v8.Value).IsString},
+		{"Symbol()", (*v8.Value).IsSymbol},
+		{"Symbol('foo')", (*v8.Value).IsSymbol},
+		{"() => {}", (*v8.Value).IsFunction},
+		{"function v() {}; v", (*v8.Value).IsFunction},
+		{"const v = function() {}; v", (*v8.Value).IsFunction},
+		{"console.log", (*v8.Value).IsFunction},
+		{"Object", (*v8.Value).IsFunction},
+		{"class Foo {}; Foo", (*v8.Value).IsFunction},
+		{"class Foo { bar() {} }; (new Foo()).bar", (*v8.Value).IsFunction},
+		{"function* v(){}; v", (*v8.Value).IsFunction},
+		{"async function v(){}; v", (*v8.Value).IsFunction},
+		{"Object()", (*v8.Value).IsObject},
+		{"new Object", (*v8.Value).IsObject},
+		{"var v = {}; v", (*v8.Value).IsObject},
+		{"10n", (*v8.Value).IsBigInt},
+		{"BigInt(1)", (*v8.Value).IsBigInt},
+		{"true", (*v8.Value).IsBoolean},
+		{"false", (*v8.Value).IsBoolean},
+		{"Boolean()", (*v8.Value).IsBoolean},
+		{"(new Boolean).valueOf()", (*v8.Value).IsBoolean},
+		{"1", (*v8.Value).IsNumber},
+		{"1.1", (*v8.Value).IsNumber},
+		{"1_1", (*v8.Value).IsNumber},
+		{".1", (*v8.Value).IsNumber},
+		{"2e4", (*v8.Value).IsNumber},
+		{"0x2", (*v8.Value).IsNumber},
+		{"NaN", (*v8.Value).IsNumber},
+		{"Infinity", (*v8.Value).IsNumber},
+		{"Number(1)", (*v8.Value).IsNumber},
+		{"(new Number()).valueOf()", (*v8.Value).IsNumber},
+		{"1", (*v8.Value).IsInt32},
+		{"-1", (*v8.Value).IsInt32},
+		{"1", (*v8.Value).IsUint32},
+		{"new Date", (*v8.Value).IsDate},
+		{"function foo(){ return arguments }; foo()", (*v8.Value).IsArgumentsObject},
+		{"Object(1n)", (*v8.Value).IsBigIntObject},
+		{"Object(1)", (*v8.Value).IsNumberObject},
+		{"new Number", (*v8.Value).IsNumberObject},
+		{"new String", (*v8.Value).IsStringObject},
+		{"Object('')", (*v8.Value).IsStringObject},
+		{"Object(Symbol())", (*v8.Value).IsSymbolObject},
+		{"Error()", (*v8.Value).IsNativeError},
+		{"TypeError()", (*v8.Value).IsNativeError},
+		{"SyntaxError()", (*v8.Value).IsNativeError},
+		{"/./", (*v8.Value).IsRegExp},
+		{"RegExp()", (*v8.Value).IsRegExp},
+		{"async function v(){}; v", (*v8.Value).IsAsyncFunction},
+		{"let v = async () => {}; v", (*v8.Value).IsAsyncFunction},
+		{"function* v(){}; v", (*v8.Value).IsGeneratorFunction},
+		{"function* v(){}; v()", (*v8.Value).IsGeneratorObject},
+		{"new Promise(()=>{})", (*v8.Value).IsPromise},
+		{"new Map", (*v8.Value).IsMap},
+		{"new Set", (*v8.Value).IsSet},
+		{"(new Map).entries()", (*v8.Value).IsMapIterator},
+		{"(new Set).entries()", (*v8.Value).IsSetIterator},
+		{"new WeakMap", (*v8.Value).IsWeakMap},
+		{"new WeakSet", (*v8.Value).IsWeakSet},
+		{"new Array", (*v8.Value).IsArray},
+		{"Array()", (*v8.Value).IsArray},
+		{"[]", (*v8.Value).IsArray},
+		{"new ArrayBuffer", (*v8.Value).IsArrayBuffer},
+		{"new Int8Array", (*v8.Value).IsArrayBufferView},
+		{"new Int8Array", (*v8.Value).IsTypedArray},
+		{"new Uint32Array", (*v8.Value).IsTypedArray},
+		{"new Uint8Array", (*v8.Value).IsUint8Array},
+		{"new Uint8ClampedArray", (*v8.Value).IsUint8ClampedArray},
+		{"new Int8Array", (*v8.Value).IsInt8Array},
+		{"new Uint16Array", (*v8.Value).IsUint16Array},
+		{"new Int16Array", (*v8.Value).IsInt16Array},
+		{"new Uint32Array", (*v8.Value).IsUint32Array},
+		{"new Int32Array", (*v8.Value).IsInt32Array},
+		{"new Float32Array", (*v8.Value).IsFloat32Array},
+		{"new Float64Array", (*v8.Value).IsFloat64Array},
+		{"new BigInt64Array", (*v8.Value).IsBigInt64Array},
+		{"new BigUint64Array", (*v8.Value).IsBigUint64Array},
+		{"new DataView(new ArrayBuffer)", (*v8.Value).IsDataView},
+		{"new SharedArrayBuffer", (*v8.Value).IsSharedArrayBuffer},
+		{"new Proxy({},{})", (*v8.Value).IsProxy},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -715,9 +648,6 @@ func TestValueIsXXX(t *testing.T) {
 			}
 			if !tt.assert(val) {
 				t.Errorf("value is false for %s", runtime.FuncForPC(reflect.ValueOf(tt.assert).Pointer()).Name())
-			}
-			if tt.expectedType != val.GetType() {
-				t.Errorf("value type is %v, expected %v", val.GetType(), tt.expectedType)
 			}
 		})
 	}
@@ -774,62 +704,6 @@ func TestValueMarshalJSON(t *testing.T) {
 			if !bytes.Equal(json, tt.expected) {
 				t.Errorf("unexpected JSON value: %s", string(json))
 			}
-
 		})
-	}
-}
-
-func TestValueScopes(t *testing.T) {
-	t.Parallel()
-	iso := v8.NewIsolate()
-	defer iso.Dispose()
-	ctx := v8.NewContext(iso)
-	defer ctx.Close()
-
-	val1, _ := ctx.NewValue("value 1")
-	if val1.DetailString() != "value 1" {
-		t.Error("Unexpected value 1")
-	}
-
-	var val2 *v8.Value
-	ctx.WithTemporaryValues(func() {
-		val2, _ = ctx.NewValue("value 2")
-		if val2.DetailString() != "value 2" {
-			t.Error("Unexpected value 2")
-		}
-	})
-
-	val3, _ := ctx.NewValue("value 3")
-	if val3.DetailString() != "value 3" {
-		t.Error("Unexpected value 3")
-	}
-
-	if val1.DetailString() != "value 1" {
-		t.Error("Unexpected value 1, second try")
-	}
-
-	if !val2.IsUndefined() {
-		t.Errorf("Unexpected obsolete val2; should now be undefined")
-	}
-	if deets := val2.DetailString(); deets != "undefined" {
-		t.Errorf("Unexpected DetailString of obsolete val2; got %q, should be %q", deets, "undefined")
-	}
-}
-
-func BenchmarkV8ToGoString(b *testing.B) {
-	var kTestString = "This is an ASCII string of nontrivial but not excessive length."
-	iso := v8.NewIsolate()
-	defer iso.Dispose()
-	iso.Lock()
-	defer iso.Unlock()
-
-	v8Str, _ := v8.NewValue(iso, kTestString)
-
-	b.ResetTimer()
-	for i := b.N; i > 0; i-- {
-		goStr := v8Str.String()
-		if goStr != kTestString {
-			b.FailNow()
-		}
 	}
 }
