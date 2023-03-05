@@ -9,19 +9,11 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-    - name: Get version tag
-      id: version
+    - id: version
       run: echo "::set-output name=tag::${GITHUB_REF/refs\/tags\//}"
-    - name: Get changelog url
-      id: changelog
+    - id: changelog
       run: echo "${{ steps.version.outputs.tag }}---$(date +'%Y-%m-%d')" | sed -e 's/\.//g' | awk '{print "::set-output name=url::https://github.com/ionos-cloud/v8go/blob/main/CHANGELOG.md#" $1}'
-    - name: Create release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ steps.version.outputs.tag }}
-        release_name: ${{ steps.version.outputs.tag }}
-        body: Full changelog ⇒ [${{ steps.version.outputs.tag }}](${{ steps.changelog.outputs.url }})
         draft: true
         prerelease: false
