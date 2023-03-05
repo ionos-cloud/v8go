@@ -183,7 +183,7 @@ github.com/ionos-cloud/v8go/promise.go:55.19,59.3 3 4
 github.com/ionos-cloud/v8go/promise.go:60.2,60.15 1 4
 github.com/ionos-cloud/v8go/promise.go:65.52,67.2 1 2
 github.com/ionos-cloud/v8go/promise.go:71.51,73.2 1 1
-github.com/ionos-cloud/v8go/promise.go:76.40,78.2 1 1042964
+github.com/ionos-cloud/v8go/promise.go:76.40,78.2 1 707155
 github.com/ionos-cloud/v8go/promise.go:83.35,87.2 3 2
 github.com/ionos-cloud/v8go/promise.go:97.58,99.18 2 4
 github.com/ionos-cloud/v8go/promise.go:100.9,102.42 2 1

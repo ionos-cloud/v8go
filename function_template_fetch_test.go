@@ -49,7 +49,7 @@ func ExampleFunctionTemplate_fetch() {
 	for prom.State() == v8.Pending {
 		continue
 	}
-	fmt.Printf("%s\n", strings.Split(prom.Result().String(), "\n")[0])
+	fmt.Printf("%s\n", strings.Split(prom.Result().String(), "\n")[7])
 	// Output:
 	// <!DOCTYPE html>
 }

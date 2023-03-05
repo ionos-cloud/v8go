@@ -1,4 +1,4 @@
-name: CI
+name: Test
 
 on:
   push:
@@ -23,16 +23,27 @@ jobs:
     - uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - env:
         CGO_CXXFLAGS: "-Werror"
       run: go test -v -coverprofile c.out ./...
-    - uses: codecov/codecov-action@v1
-      env:
-        OS: ${{ matrix.platform }}
-        GO: ${{ matrix.go-version }}
-      with:
-        files: ./c.out
-        env_vars: OS,GO
-    - run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
+    - run: make test
+    # - uses: codecov/codecov-action@v1
+    #   env:
+    #     OS: ${{ matrix.platform }}
+    #     GO: ${{ matrix.go-version }}
+    #   with:
+    #     files: ./c.out
+    #     env_vars: OS,GO
+    # - run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: ./go.mod
+          check-latest: true
+      - run: make lint
         
