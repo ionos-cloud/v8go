@@ -30,11 +30,3 @@ lint: ## Run lint.
 clean: ## Remove previous build.
 	find . -type f -name '*.gen.go' -exec rm {} +
 	git checkout go.mod
-
-.PHONY: run-kafka
-run-kafka:
-	@docker run -d --rm  -p 2181:2181 -p 9092:9092 --name some-kafka --env ADVERTISED_HOST=127.0.0.1 --env ADVERTISED_PORT=9092 spotify/kafka
-
-.PHONY: stop-kafka
-stop-kafka:
-	@docker stop some-kafka
