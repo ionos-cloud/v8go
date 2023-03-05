@@ -3,17 +3,24 @@ name: Release
 on:
   push:
     tags:
-    - v*
+      - 'v*'
 
 jobs:
+  test:
+    uses: ./.github/workflows/main.yml
+
   release:
     runs-on: ubuntu-latest
+    needs: [ test ]
+    permissions:
+      packages: write
+      contents: write
     steps:
-    - id: version
-      run: echo "::set-output name=tag::${GITHUB_REF/refs\/tags\//}"
-    - id: changelog
-      run: echo "${{ steps.version.outputs.tag }}---$(date +'%Y-%m-%d')" | sed -e 's/\.//g' | awk '{print "::set-output name=url::https://github.com/ionos-cloud/v8go/blob/main/CHANGELOG.md#" $1}'
-    - uses: softprops/action-gh-release@v1
-      with:
-        draft: true
-        prerelease: false
+      - id: version
+        run: echo "::set-output name=tag::${GITHUB_REF/refs\/tags\//}"
+      - id: changelog
+        run: echo "${{ steps.version.outputs.tag }}---$(date +'%Y-%m-%d')" | sed -e 's/\.//g' | awk '{print "::set-output name=url::https://github.com/ionos-cloud/v8go/blob/main/CHANGELOG.md#" $1}'
+      - uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          prerelease: false
