@@ -3,11 +3,9 @@
 <a href="https://github.com/ionos-cloud/v8go/releases"><img src="https://img.shields.io/github/v/release/ionos-cloud/v8go" alt="Github release"></a>
 [![Go Report Card](https://goreportcard.com/badge/ionos-cloud/v8go)](https://goreportcard.com/report/ionos-cloud/v8go)
 [![Go Reference](https://pkg.go.dev/badge/ionos-cloud/v8go.svg)](https://pkg.go.dev/ionos-cloud/v8go)
-[![CI](https://github.com/ionos-cloud/v8go/workflows/CI/badge.svg)](https://github.com/ionos-cloud/v8go/actions?query=workflow%3ACI)
+[![Test](https://github.com/ionos-cloud/v8go/actions/workflows/main.yml/badge.svg)](https://github.com/ionos-cloud/v8go/actions/workflows/main.yml)
 ![V8 Build](https://github.com/ionos-cloud/v8go/workflows/V8%20Build/badge.svg)
 [![codecov](https://codecov.io/gh/ionos-cloud/v8go/branch/master/graph/badge.svg?token=VHZwzGm3dV)](https://codecov.io/gh/ionos-cloud/v8go)
-[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B22862%2Fgit%40github.com%3Aionos-cloud%2Fv8go.git.svg?type=shield)](https://app.fossa.com/projects/custom%2B22862%2Fgit%40github.com%3Aionos-cloud%2Fv8go.git?ref=badge_shield)
-[![#v8go Slack Channel](https://img.shields.io/badge/slack-%23v8go-4A154B?logo=slack)](https://gophers.slack.com/channels/v8go)
 
 <img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
 
