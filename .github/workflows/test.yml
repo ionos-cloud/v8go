@@ -12,32 +12,27 @@ jobs:
     name: Tests on ${{ matrix.go-version }} ${{ matrix.platform }}
     strategy:
       matrix:
-        go-version: [1.19, 1.20]
+        go-version: ['1.19', '1.20']
         # We use macos-11 over macos-latest because macos-latest defaults to Catalina(10.15) and not Big Sur(11.0)
         # We can switch to macos-latest whenever Big Sur becomes the default
         # See https://github.com/actions/virtual-environments#available-environments
         platform: [ubuntu-latest, macos-11]
     runs-on: ${{ matrix.platform }}
-
+    
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v2
+    - uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Go Test
-      env:
+    - uses: actions/checkout@v2
+    - env:
         CGO_CXXFLAGS: "-Werror"
       run: go test -v -coverprofile c.out ./...
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v1
       env:
         OS: ${{ matrix.platform }}
         GO: ${{ matrix.go-version }}
       with:
         files: ./c.out
         env_vars: OS,GO
-    - name: Add GOPATH to GITHUB_ENV
-      run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
+    - run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
         
