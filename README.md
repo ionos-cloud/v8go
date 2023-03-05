@@ -14,7 +14,7 @@
 ## Usage
 
 ```go
-import v8 "ionos-cloud/v8go"
+import v8 "github.com/ionos-cloud/v8go"
 ```
 
 ### Running a script
