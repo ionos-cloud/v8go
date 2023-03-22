@@ -4,5 +4,5 @@ package include
 
 import (
 	_ "github.com/ionos-cloud/v8go/deps/include/cppgc"
-	_ "github.com/ionos-cloud/v8go/deps/include/libplatform"
+  _ "github.com/ionos-cloud/v8go/deps/include/libplatform"
 )
