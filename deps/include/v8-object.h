@@ -247,13 +247,16 @@ class V8_EXPORT Object : public Value {
   V8_WARN_UNUSED_RESULT Maybe<bool> Set(Local<Context> context, uint32_t index,
                                         Local<Value> value);
 
-  // Implements CreateDataProperty (ECMA-262, 7.3.4).
-  //
-  // Defines a configurable, writable, enumerable property with the given value
-  // on the object unless the property already exists and is not configurable
-  // or the object is not extensible.
-  //
-  // Returns true on success.
+  /**
+   * Implements CreateDataProperty(O, P, V), see
+   * https://tc39.es/ecma262/#sec-createdataproperty.
+   *
+   * Defines a configurable, writable, enumerable property with the given value
+   * on the object unless the property already exists and is not configurable
+   * or the object is not extensible.
+   *
+   * Returns true on success.
+   */
   V8_WARN_UNUSED_RESULT Maybe<bool> CreateDataProperty(Local<Context> context,
                                                        Local<Name> key,
                                                        Local<Value> value);
@@ -261,29 +264,35 @@ class V8_EXPORT Object : public Value {
                                                        uint32_t index,
                                                        Local<Value> value);
 
-  // Implements DefineOwnProperty.
-  //
-  // In general, CreateDataProperty will be faster, however, does not allow
-  // for specifying attributes.
-  //
-  // Returns true on success.
+  /**
+   * Implements [[DefineOwnProperty]] for data property case, see
+   * https://tc39.es/ecma262/#table-essential-internal-methods.
+   *
+   * In general, CreateDataProperty will be faster, however, does not allow
+   * for specifying attributes.
+   *
+   * Returns true on success.
+   */
   V8_WARN_UNUSED_RESULT Maybe<bool> DefineOwnProperty(
       Local<Context> context, Local<Name> key, Local<Value> value,
       PropertyAttribute attributes = None);
 
-  // Implements Object.DefineProperty(O, P, Attributes), see Ecma-262 19.1.2.4.
-  //
-  // The defineProperty function is used to add an own property or
-  // update the attributes of an existing own property of an object.
-  //
-  // Both data and accessor descriptors can be used.
-  //
-  // In general, CreateDataProperty is faster, however, does not allow
-  // for specifying attributes or an accessor descriptor.
-  //
-  // The PropertyDescriptor can change when redefining a property.
-  //
-  // Returns true on success.
+  /**
+   * Implements Object.defineProperty(O, P, Attributes), see
+   * https://tc39.es/ecma262/#sec-object.defineproperty.
+   *
+   * The defineProperty function is used to add an own property or
+   * update the attributes of an existing own property of an object.
+   *
+   * Both data and accessor descriptors can be used.
+   *
+   * In general, CreateDataProperty is faster, however, does not allow
+   * for specifying attributes or an accessor descriptor.
+   *
+   * The PropertyDescriptor can change when redefining a property.
+   *
+   * Returns true on success.
+   */
   V8_WARN_UNUSED_RESULT Maybe<bool> DefineProperty(
       Local<Context> context, Local<Name> key, PropertyDescriptor& descriptor);
 
@@ -302,14 +311,15 @@ class V8_EXPORT Object : public Value {
       Local<Context> context, Local<Value> key);
 
   /**
-   * Returns Object.getOwnPropertyDescriptor as per ES2016 section 19.1.2.6.
+   * Implements Object.getOwnPropertyDescriptor(O, P), see
+   * https://tc39.es/ecma262/#sec-object.getownpropertydescriptor.
    */
   V8_WARN_UNUSED_RESULT MaybeLocal<Value> GetOwnPropertyDescriptor(
       Local<Context> context, Local<Name> key);
 
   /**
-   * Object::Has() calls the abstract operation HasProperty(O, P) described
-   * in ECMA-262, 7.3.10. Has() returns
+   * Object::Has() calls the abstract operation HasProperty(O, P), see
+   * https://tc39.es/ecma262/#sec-hasproperty. Has() returns
    * true, if the object has the property, either own or on the prototype chain.
    * Interceptors, i.e., PropertyQueryCallbacks, are called if present.
    *
@@ -347,7 +357,7 @@ class V8_EXPORT Object : public Value {
 
   void SetAccessorProperty(Local<Name> name, Local<Function> getter,
                            Local<Function> setter = Local<Function>(),
-                           PropertyAttribute attribute = None,
+                           PropertyAttribute attributes = None,
                            AccessControl settings = DEFAULT);
 
   /**
@@ -608,6 +618,19 @@ class V8_EXPORT Object : public Value {
   }
 
   /**
+   * Gets the context in which the object was created (see GetCreationContext())
+   * and if it's available reads respective embedder field value.
+   * If the context can't be obtained nullptr is returned.
+   * Basically it's a shortcut for
+   *   obj->GetCreationContext().GetAlignedPointerFromEmbedderData(index)
+   * which doesn't create a handle for Context object on the way and doesn't
+   * try to expand the embedder data attached to the context.
+   * In case the Local<Context> is already available because of other reasons,
+   * it's fine to keep using Context::GetAlignedPointerFromEmbedderData().
+   */
+  void* GetAlignedPointerFromEmbedderDataInCreationContext(int index);
+
+  /**
    * Checks whether a callback is set by the
    * ObjectTemplate::SetCallAsFunctionHandler method.
    * When an Object is callable this method returns true.
@@ -707,7 +730,7 @@ Local<Value> Object::GetInternalField(int index) {
 #ifndef V8_ENABLE_CHECKS
   using A = internal::Address;
   using I = internal::Internals;
-  A obj = *reinterpret_cast<A*>(this);
+  A obj = internal::ValueHelper::ValueAsAddress(this);
   // Fast path: If the object is a plain JSObject, which is the common case, we
   // know where to find the internal fields and can return the value directly.
   int instance_type = I::GetInstanceType(obj);
@@ -717,12 +740,17 @@ Local<Value> Object::GetInternalField(int index) {
 #ifdef V8_COMPRESS_POINTERS
     // We read the full pointer value and then decompress it in order to avoid
     // dealing with potential endiannes issues.
-    value = I::DecompressTaggedAnyField(obj, static_cast<uint32_t>(value));
+    value = I::DecompressTaggedField(obj, static_cast<uint32_t>(value));
 #endif
+
+#ifdef V8_ENABLE_CONSERVATIVE_STACK_SCANNING
+    return Local<Value>(reinterpret_cast<Value*>(value));
+#else
     internal::Isolate* isolate =
         internal::IsolateFromNeverReadOnlySpaceObject(obj);
     A* result = HandleScope::CreateHandle(isolate, value);
     return Local<Value>(reinterpret_cast<Value*>(result));
+#endif
   }
 #endif
   return SlowGetInternalField(index);
@@ -732,7 +760,7 @@ void* Object::GetAlignedPointerFromInternalField(int index) {
 #if !defined(V8_ENABLE_CHECKS)
   using A = internal::Address;
   using I = internal::Internals;
-  A obj = *reinterpret_cast<A*>(this);
+  A obj = internal::ValueHelper::ValueAsAddress(this);
   // Fast path: If the object is a plain JSObject, which is the common case, we
   // know where to find the internal fields and can return the value directly.
   auto instance_type = I::GetInstanceType(obj);
