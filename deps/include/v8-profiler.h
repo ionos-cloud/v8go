@@ -24,7 +24,7 @@ enum class EmbedderStateTag : uint8_t;
 class HeapGraphNode;
 struct HeapStatsUpdate;
 class Object;
-enum StateTag : int;
+enum StateTag : uint16_t;
 
 using NativeObject = void*;
 using SnapshotObjectId = uint32_t;
@@ -596,6 +596,7 @@ class V8_EXPORT HeapGraphNode {
     kBigInt = 13,        // BigInt.
     kObjectShape = 14,   // Internal data used for tracking the shapes (or
                          // "hidden classes") of JS objects.
+    kWasmObject = 15,    // A WasmGC struct or array.
   };
 
   /** Returns node type (see HeapGraphNode::Type). */
@@ -881,6 +882,15 @@ class V8_EXPORT EmbedderGraph {
      * object graph.
      */
     virtual Detachedness GetDetachedness() { return Detachedness::kUnknown; }
+
+    /**
+     * Returns the address of the object in the embedder heap, or nullptr to not
+     * specify the address. If this address is provided, then V8 can generate
+     * consistent IDs for objects across subsequent heap snapshots, which allows
+     * devtools to determine which objects were retained from one snapshot to
+     * the next. This value is used only if GetNativeObject returns nullptr.
+     */
+    virtual const void* GetAddress() { return nullptr; }
 
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
